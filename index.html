@@ -5,107 +5,256 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LM 时间线 · 可编辑版</title>
 <style>
+  :root { color-scheme: light dark; }
+  input, select { color: inherit; -webkit-text-fill-color: currentColor; caret-color: currentColor; }
   body { margin: 0; padding: 24px; background: #fff; color: #111;
          font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
   @media (prefers-color-scheme: dark) { body { background: #111; color: #eee; } }
   .wrap { max-width: 860px; margin: 0 auto; }
-  .tl-help { font-size: 13px; color: #888; border: 1px dashed #bbb; border-radius: 10px;
+  .tl-help { font-size: 13px; color: #888; border: 1px dashed rgba(128,128,128,.5); border-radius: 10px;
              padding: 10px 14px; margin-bottom: 16px; line-height: 1.7; }
-  .tl-help code { background: rgba(128,128,128,.15); padding: 1px 5px; border-radius: 4px; }
 
   .tl-add { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;
-            border: 1px solid #ddd; border-radius: 12px; padding: 12px; }
+            border: 1px solid rgba(128,128,128,.35); border-radius: 12px; padding: 12px; }
   .tl-add input[type=date], .tl-add select, .tl-add input[type=text] {
-    padding: 7px 10px; border-radius: 10px; border: 1px solid #bbb; background: transparent;
+    padding: 7px 10px; border-radius: 10px; border: 1px solid rgba(128,128,128,.5); background: transparent;
     color: inherit; font-size: 14px; }
-  .tl-add input[type=text] { flex: 1; min-width: 200px; }
+  .tl-add input[type=text] { flex: 1; min-width: 180px; }
   .tl-add button, .tl-tool button {
     padding: 7px 14px; border-radius: 10px; border: 1px solid #333; background: #111; color: #fff;
     font-size: 14px; cursor: pointer; }
-  .tl-tool button.ghost { background: transparent; color: inherit; border-color: #bbb; }
   .tl-tool { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; align-items: center; }
+  .tl-tool button.ghost { background: transparent; color: inherit; border-color: rgba(128,128,128,.5); }
   .tl-tool .tip { font-size: 12px; color: #999; }
 
   .tl-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
   .tl-title { font-size: 17px; font-weight: 500; }
   .tl-count { font-size: 12px; color: #888; margin-left: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .tl-search { flex: 1; max-width: 220px; padding: 6px 10px; border-radius: 10px;
-               border: 1px solid #bbb; background: transparent; font-size: 14px; outline: none; }
+               border: 1px solid rgba(128,128,128,.5); background: transparent; font-size: 14px; outline: none; }
   .tl-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
-  .tl-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 6px;
-             font-size: 13px; border: 1px solid #ccc; background: transparent; cursor: pointer; }
+  .tl-chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 6px;
+             font-size: 12px; font-weight: 400; border: 1px solid rgba(128,128,128,.4); background: transparent; cursor: pointer; }
   .tl-chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
   .tl-chip .n { font-size: 12px; color: #999; }
   .tl-chip.off { opacity: 0.35; }
   .tl-chip.on { border-color: #333; }
-  .tl-strip-wrap { overflow-x: auto; border: 1px solid #ccc; border-radius: 12px; padding: 12px 8px 8px; margin-bottom: 16px; }
+  .tl-strip-wrap { overflow-x: auto; border: 1px solid rgba(128,128,128,.4); border-radius: 12px; padding: 12px 8px 8px; margin-bottom: 16px; }
   .tl-strip { display: flex; min-width: max-content; }
   .tl-month { width: 78px; cursor: pointer; padding: 0 6px; border-left: 1px solid rgba(128,128,128,.25); }
   .tl-month:first-child { border-left: none; }
   .tl-track { position: relative; height: 84px; }
-  .tl-mlab { font-size: 12px; text-align: center; padding-top: 6px; border-top: 1px solid #bbb; font-variant-numeric: tabular-nums; }
+  .tl-mlab { font-size: 12px; text-align: center; padding-top: 6px; border-top: 1px solid rgba(128,128,128,.5); font-variant-numeric: tabular-nums; }
   .tl-mdots { display: flex; justify-content: center; gap: 3px; padding-top: 4px; min-height: 14px; flex-wrap: wrap; }
   .tl-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); cursor: pointer; }
-  .tl-sect { margin-bottom: 16px; }
-  .tl-mh { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; position: sticky; top: 0; padding: 4px 0; background: inherit; }
+  .tl-sect { margin-bottom: 8px; }
+  .tl-mh { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; padding: 6px 4px;
+           cursor: pointer; user-select: none; border-radius: 8px; position: sticky; top: 0; background: inherit; }
+  .tl-mh:hover { background: rgba(128,128,128,.08); }
+  .tl-arr { font-size: 12px; color: #888; width: 14px; }
   .tl-mh h3 { font-size: 14px; font-weight: 500; margin: 0; }
   .tl-mh span { font-size: 12px; color: #999; }
   .tl-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px; border-radius: 10px; }
   .tl-row:hover { background: rgba(128,128,128,.1); }
   .tl-date { flex: 0 0 52px; font-size: 13px; color: #666; display: flex; align-items: center; gap: 6px; padding-top: 1px; font-variant-numeric: tabular-nums; }
-  .tl-date .dot { flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
-  .tl-txt { flex: 1; font-size: 14px; line-height: 21px; }
+  .tl-catdot { flex: 0 0 auto; width: 10px; height: 10px; border-radius: 50%; background: var(--c);
+               cursor: pointer; border: none; padding: 0; margin-top: 4px; }
+  .tl-catdot:hover { transform: scale(1.25); }
+  .tl-txt { flex: 1; font-size: 14px; line-height: 21px; cursor: text; border-radius: 6px; padding: 0 4px; }
+  .tl-txt:hover { outline: 1px dashed rgba(128,128,128,.5); }
+  .tl-txt input { width: 100%; box-sizing: border-box; padding: 4px 8px; border-radius: 8px;
+                  border: 1px solid #333; background: transparent; color: inherit; font-size: 14px; }
   .tl-tag { flex: 0 0 auto; font-size: 12px; padding: 2px 8px; border-radius: 6px; color: var(--c);
             background: color-mix(in srgb, var(--c) 14%, transparent); white-space: nowrap; margin-top: 1px; }
-  .tl-del { flex: 0 0 auto; border: none; background: transparent; color: #ccc; font-size: 16px;
+  .tl-del { flex: 0 0 auto; border: none; background: transparent; color: rgba(128,128,128,.4); font-size: 16px;
             cursor: pointer; padding: 0 4px; opacity: 0; }
   .tl-row:hover .tl-del { opacity: 1; }
   .tl-del:hover { color: #ef4444; }
   .tl-empty { text-align: center; color: #888; font-size: 14px; padding: 24px 0; }
   .tl-toast { position: fixed; left: 50%; bottom: 40px; transform: translateX(-50%);
               background: #111; color: #fff; padding: 8px 18px; border-radius: 8px; font-size: 14px;
-              opacity: 0; transition: opacity .25s; pointer-events: none; }
+              opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 300; }
+
+  /* 弹窗 */
+  .m-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex;
+               align-items: center; justify-content: center; z-index: 200; padding: 20px; }
+  .m-box { background: #fff; color: #111; border-radius: 12px; padding: 20px; width: 100%;
+           max-width: 380px; max-height: 80vh; overflow-y: auto; }
+  @media (prefers-color-scheme: dark) { .m-box { background: #1c1c1e; color: #eee; } }
+  .m-title { font-size: 15px; font-weight: 500; margin-bottom: 12px; }
+  .m-body { font-size: 14px; line-height: 1.6; margin-bottom: 16px; }
+  .m-btns { display: flex; justify-content: flex-end; gap: 8px; }
+  .m-btns button { padding: 7px 16px; border-radius: 10px; font-size: 14px; cursor: pointer; border: 1px solid rgba(128,128,128,.5); background: transparent; color: inherit; }
+  .m-btns button.m-primary { background: #111; color: #fff; border-color: #111; }
+  .m-opt { display: flex; align-items: center; gap: 8px; padding: 8px 4px; cursor: pointer; font-size: 14px; }
+  .m-opt input { accent-color: #111; }
+  .m-opt .dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
+  .m-catrow { display: flex; align-items: center; gap: 8px; padding: 8px 4px; font-size: 14px; border-bottom: 1px solid rgba(128,128,128,.15); }
+  .m-catrow .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .m-catrow .cnt { color: #999; font-size: 12px; }
+  .m-catrow button { margin-left: auto; border: none; background: transparent; color: rgba(128,128,128,.4); font-size: 16px; cursor: pointer; }
+  .m-catrow button:hover { color: #ef4444; }
+  .m-addrow { display: flex; gap: 8px; margin-top: 12px; }
+  .m-addrow input { flex: 1; padding: 7px 10px; border-radius: 10px; border: 1px solid rgba(128,128,128,.5); background: transparent; color: inherit; font-size: 14px; }
+  .m-addrow button { padding: 7px 14px; border-radius: 10px; border: 1px solid #333; background: #111; color: #fff; font-size: 14px; cursor: pointer; }
+
+  /* 评论与投票 */
+  .tl-toggle { flex: 0 0 auto; border: 1px solid rgba(128,128,128,.4); background: transparent; color: #888;
+               border-radius: 6px; font-size: 12px; padding: 2px 8px; cursor: pointer; margin-top: 1px; white-space: nowrap; }
+  .tl-toggle:hover { border-color: #333; color: inherit; }
+  .tl-panel { margin: 2px 0 10px 62px; border: 1px solid rgba(128,128,128,.3); border-radius: 10px; padding: 12px; }
+  @media (max-width: 600px) { .tl-panel { margin-left: 10px; } }
+  .vote-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+  .vb { padding: 5px 12px; border-radius: 8px; font-size: 13px; cursor: pointer; background: transparent; border: 1px solid rgba(128,128,128,.4); }
+  .vb.red { color: #ef4444; border-color: #ef4444; }
+  .vb.blue { color: #3b82f6; border-color: #3b82f6; }
+  .vb.gray { color: #888; }
+  .vb.red.on { background: #ef4444; color: #fff; }
+  .vb.blue.on { background: #3b82f6; color: #fff; }
+  .vb.gray.on { background: #888; color: #fff; }
+  .vote-bar { display: flex; height: 22px; border-radius: 6px; overflow: hidden; font-size: 12px; line-height: 22px; color: #fff; }
+  .vote-bar .vred { background: #ef4444; text-align: left; padding-left: 6px; overflow: hidden; white-space: nowrap; }
+  .vote-bar .vblue { background: #3b82f6; text-align: right; padding-right: 6px; overflow: hidden; white-space: nowrap; }
+  .vote-avas { display: flex; justify-content: space-between; margin-top: 6px; }
+  .vside { display: flex; flex-wrap: wrap; align-items: center; }
+  .vside.right { justify-content: flex-end; }
+  .vabs { margin-top: 6px; font-size: 12px; color: #888; display: flex; align-items: center; flex-wrap: wrap; gap: 2px; }
+  .vhint { margin-top: 6px; font-size: 12px; color: #aaa; }
+  .pdiv { border-top: 1px dashed rgba(128,128,128,.35); margin: 12px 0; }
+  .cmt-row { display: flex; gap: 8px; padding: 6px 0; }
+  .cmt-name { font-size: 13px; font-weight: 500; }
+  .cmt-time { font-size: 11px; color: #aaa; margin-left: 6px; }
+  .cmt-text { font-size: 14px; line-height: 20px; word-break: break-all; }
+  .cmt-input { display: flex; gap: 8px; margin-top: 8px; }
+  .cmt-input input { flex: 1; padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(128,128,128,.5); background: transparent; color: inherit; font-size: 14px; }
+  .cmt-input button { padding: 6px 14px; border-radius: 8px; border: 1px solid #333; background: #111; color: #fff; font-size: 13px; cursor: pointer; }
+  .me-chip { display: flex; align-items: center; }
+
+  /* 公告栏：蓝粉霓虹外框 */
+  .annbar { border-radius: 12px; padding: 14px 18px; margin-bottom: 16px; line-height: 1.9;
+    border: 2px solid transparent;
+    background: linear-gradient(#ffffff, #ffffff) padding-box,
+                linear-gradient(90deg, #76d2e7, #F4BFD3, #76d2e7) border-box;
+    animation: neonGlow 2.2s ease-in-out infinite alternate; }
+  @media (prefers-color-scheme: dark) {
+    .annbar { background: linear-gradient(#1c1c1e, #1c1c1e) padding-box,
+                linear-gradient(90deg, #76d2e7, #F4BFD3, #76d2e7) border-box; } }
+  @keyframes neonGlow {
+    from { box-shadow: 0 0 6px rgba(118,210,231,.8), inset 0 0 8px rgba(118,210,231,.25); }
+    to   { box-shadow: 0 0 16px rgba(244,191,211,.9), inset 0 0 12px rgba(244,191,211,.3); } }
+  .ann-line { font-size: 14px; }
+  .ann-drag { cursor: grab; user-select: none; -webkit-user-select: none; }
+  .ann-drag:active { cursor: grabbing; }
+  .ann-big { font-size: 17px; font-weight: 700; }
+  .annbar { text-align: center; }
+  .love-grad { background: linear-gradient(90deg, #76d2e7, #F4BFD3, #76d2e7); background-size: 200% 100%;
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: loveShift 4s ease-in-out infinite; }
+  @keyframes loveShift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+
+  /* 评论互动 */
+  .tl-panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+  .tl-panel-head .p-t { font-size: 12px; color: #aaa; }
+  .p-collapse { border: 1px solid rgba(128,128,128,.4); background: transparent; color: #888; border-radius: 6px;
+                font-size: 12px; padding: 2px 8px; cursor: pointer; }
+  .p-collapse:hover { border-color: #333; color: inherit; }
+  .cmt-acts { margin-left: 8px; font-size: 12px; }
+  .cmt-acts a { color: #3b82f6; cursor: pointer; margin-right: 8px; text-decoration: none; }
+  .cmt-acts a.danger, .cmt-text a.danger { color: #ef4444; }
+  .cmt-text a { font-size: 12px; cursor: pointer; text-decoration: none; }
+  .replies { margin: 4px 0 0 8px; padding-left: 10px; border-left: 2px solid rgba(128,128,128,.2); }
+  .cmt-reply { display: flex; gap: 6px; padding: 4px 0; }
+  .cmt-input button.ghost { background: transparent; color: inherit; border-color: rgba(128,128,128,.5); }
+  details.tl-help summary { cursor: pointer; font-weight: 500; color: inherit; }
+
+  /* 数据下拉菜单 */
+  .dd-wrap { position: relative; }
+  .dd-btn { font-size: 12px !important; padding: 4px 9px !important; }
+  .dd-menu { display: none; position: absolute; top: 115%; left: 0; z-index: 150;
+    flex-direction: column; min-width: 118px; border-radius: 8px; padding: 4px;
+    border: 1px solid rgba(128,128,128,.4); background: #fff; box-shadow: 0 4px 14px rgba(0,0,0,.12); }
+  .dd-menu.open { display: flex; }
+  .dd-menu button { border: none; background: transparent; color: inherit; text-align: left;
+    font-size: 12px; padding: 6px 9px; border-radius: 6px; cursor: pointer; white-space: nowrap; }
+  .dd-menu button:hover { background: rgba(128,128,128,.15); }
+  @media (prefers-color-scheme: dark) { .dd-menu { background: #1c1c1e; } }
+
+  /* 自定义悬停提示：1 秒后出现 */
+  [data-tip] { position: relative; }
+  [data-tip]::after {
+    content: attr(data-tip);
+    position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%);
+    background: rgba(17,17,17,.95); color: #fff; font-size: 12px; line-height: 1.5;
+    padding: 4px 10px; border-radius: 6px; width: max-content; max-width: 250px;
+    white-space: normal; text-align: left; z-index: 500; opacity: 0; pointer-events: none;
+    transition: opacity .15s ease;
+  }
+  [data-tip]:hover::after { opacity: 1; transition-delay: 1s; }
+
+  /* 搜索结果条 */
+  .tl-searchbar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; margin-bottom: 12px;
+    border: 1px dashed rgba(128,128,128,.4); border-radius: 10px; font-size: 13px; }
 </style>
+<base target="_blank">
 </head>
 <body>
 <div class="wrap">
 
-<div class="tl-help">
-  <b>使用说明：</b>① 在上方表单选日期、分类、填描述，点「添加」即可记录，数据自动保存在本机；
-  ② 点分类标签可筛选，顶部月份条可点击跳转；③ 鼠标移到事件上会出现 × 可删除（手机上长按行再点 ×）；
-  ④ 换新设备或想和朋友合并：<b>导出 JSON</b> 发过去，对方点 <b>导入 JSON</b> 选择文件即可合并。
-  不确定日期的老数据会显示为「?」。
+<div class="annbar">
+  <div class="ann-line" style="color:#FFFDF2;text-shadow:0 1px 3px rgba(0,0,0,.4)">💞 已坠入爱河 <span id="annLove" class="love-grad" style="font-size:30px;font-weight:800;text-shadow:none"></span> 天</div>
+  <div id="annLines">
+    <div class="ann-line ann-drag" id="annLineM" style="color:#F4BFD3">❤ 穆祉丞 <span id="annM"></span> ❤</div>
+    <div class="ann-line ann-drag" id="annLineL" style="color:#76d2e7">❤ 王橹杰 <span id="annL"></span> ❤</div>
+  </div>
 </div>
 
 <div class="tl-add">
-  <input type="date" id="fDate">
+  <input type="text" id="fDate" placeholder="YYYY-MM-DD" style="max-width:125px">
+  <button type="button" class="ghost" style="padding:7px 10px" onclick="openCal()" data-tip="打开日历选日期">📅</button>
+  <input type="date" id="fDateCal" style="position:fixed;left:-9999px;top:0;opacity:.01" onchange="document.getElementById('fDate').value = this.value">
   <select id="fCat"></select>
   <input type="text" id="fText" placeholder="事件描述，如：M 发高会，同框合照">
   <button onclick="addEvent()">添加</button>
 </div>
 <div class="tl-tool">
-  <button class="ghost" onclick="exportJSON()">导出 JSON</button>
-  <button class="ghost" onclick="document.getElementById('importFile').click()">导入 JSON</button>
-  <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importJSON(event)">
-  <button class="ghost" onclick="resetAll()">恢复默认数据</button>
-  <span class="tip">记录保存在本机浏览器，清理缓存会丢失，重要记录记得导出备份</span>
+  <button class="ghost" id="undoBtn" onclick="undo()">↩ 撤销</button>
+  <button class="ghost" onclick="manageCats()">管理分类</button>
+  <div class="dd-wrap">
+    <button class="ghost dd-btn" onclick="toggleDD()">数据 ▾</button>
+    <div class="dd-menu" id="ddMenu">
+      <button onclick="ddAction('import')">导入 JSON 备份</button>
+      <button onclick="ddAction('exportJSON')">导出 JSON 备份</button>
+      <button onclick="ddAction('exportCSV')">导出 Excel</button>
+    </div>
+  </div>
+  <input type="file" id="importFile" accept=".json,.csv,.txt,application/json,text/csv,text/plain" style="display:none" onchange="importJSON(event)">
 </div>
 
 <div class="tl-head">
   <span class="tl-title">LM 时间线</span>
-  <input class="tl-search" id="tlSearch" placeholder="搜索事件…">
+  <span class="me-chip" id="meChip" style="cursor:pointer" onclick="profileModal()" data-tip="点击头像切换身份"></span>
+  <button class="tl-toggle" onclick="collapseAll()">全部收起</button>
+  <button class="tl-toggle" onclick="expandAll()">全部展开</button>
+  <input class="tl-search" id="tlSearch" placeholder="输入关键字">
+  <button class="tl-toggle" onclick="doSearch()" data-tip="搜索">🔍</button>
   <span class="tl-count" id="tlCount"></span>
 </div>
 <div class="tl-chips" id="tlChips"></div>
 <div class="tl-strip-wrap"><div class="tl-strip" id="tlStrip"></div></div>
 <div id="tlDetail"></div>
+
+<details class="tl-help" style="margin-top:20px">
+  <summary>使用说明</summary>
+  <div style="margin-top:8px"><b>使用说明：</b>① 顶部表单选日期、分类、填描述点「添加」；② 点<b>事件文字</b>可直接修改，点<b>前面的颜色点</b>可单独改该条的分类；③ 点月份标题可折叠/展开（最新的月份在最上面）；⑦ 误删了点「↩ 撤销」可一步步恢复（最多存 30 步）；⑧ 批量更新：在 Excel 里按「日期/分类/事件」三列填好，另存为 CSV，点「导入」选它即可，不存在的分类会自动新建；④ 「管理分类」可新增/删除分类，删除时会询问原记录更新成什么；⑤ 鼠标移到记录上出现 × 删除（有确认弹窗）；⑥ 记录保存在本机浏览器，重要记录记得「导出 JSON」备份。</div>
+</details>
 </div>
 
 <div class="tl-toast" id="toast"></div>
+<div id="modalRoot"></div>
 
 <script>
-/* ========== 分类（可改名称和颜色） ========== */
-const CATS = {
+/* ========== 分类 ========== */
+const BASE_CATS = {
   meet:      { label: "同框见面", c: "#3b82f6" },
   online:    { label: "线上营业", c: "#a855f7" },
   conflict:  { label: "矛盾吃醋", c: "#ef4444" },
@@ -113,8 +262,20 @@ const CATS = {
   work:      { label: "工作相关", c: "#9ca3af" },
   milestone: { label: "关系节点", c: "#22c55e" },
 };
+const PALETTE = ["#f59e0b","#06b6d4","#ec4899","#84cc16","#14b8a6","#f97316","#6366f1"];
+let CATS = Object.assign({}, BASE_CATS);
+let RETIRED = {};   // 被删除但选择保留标记的分类
+try { Object.assign(CATS, JSON.parse(localStorage.getItem("lm_tl_cats") || "{}")); } catch(e) {}
+try { RETIRED = JSON.parse(localStorage.getItem("lm_tl_retired") || "{}"); } catch(e) {}
+function saveCats() {
+  const custom = {};
+  Object.keys(CATS).forEach(k => { if (!(k in BASE_CATS)) custom[k] = CATS[k]; });
+  localStorage.setItem("lm_tl_cats", JSON.stringify(custom));
+  localStorage.setItem("lm_tl_retired", JSON.stringify(RETIRED));
+}
+function catInfo(k) { return CATS[k] || RETIRED[k] || { label: "未分类", c: "#999999" }; }
 
-/* ========== 默认数据（首次打开时载入，之后以本机记录为准） ========== */
+/* ========== 默认数据 ========== */
 const DEFAULT_EVENTS = [
   {d:"2025-09-13", cat:"conflict", t:"M 音乐节 IDC，L 疑似拉黑/删了 M"},
   {d:"2025-09-15", cat:"milestone", t:"LM 和好（官宣时提到）"},
@@ -149,7 +310,7 @@ const DEFAULT_EVENTS = [
   {d:"2026-09-15", cat:"milestone", t:"M 全平台营业（915 一周年）"},
 ];
 
-/* ========== 存储与逻辑 ========== */
+/* ========== 存储 ========== */
 const KEY = "lm_timeline_v1";
 let EVENTS = load();
 function load() {
@@ -161,11 +322,72 @@ function load() {
 }
 function save() { localStorage.setItem(KEY, JSON.stringify(EVENTS)); }
 
-const on = {}; Object.keys(CATS).forEach(k => on[k] = true);
+/* ========== 版本回退（自动保存最近 30 步） ========== */
+let UNDO = [];
+try { UNDO = JSON.parse(localStorage.getItem("lm_tl_undo") || "[]"); } catch(e) {}
+function snapshot() {
+  UNDO.push(JSON.stringify(EVENTS));
+  if (UNDO.length > 30) UNDO.shift();
+  localStorage.setItem("lm_tl_undo", JSON.stringify(UNDO));
+  renderUndoBtn();
+}
+async function undo() {
+  if (!UNDO.length) { toast("没有可恢复的版本"); return; }
+  const ok = await confirmDlg("确定要恢复到上一个版本吗？当前的内容会被覆盖。", "恢复");
+  if (!ok) return;
+  EVENTS = JSON.parse(UNDO.pop());
+  localStorage.setItem("lm_tl_undo", JSON.stringify(UNDO));
+  save(); renderAll();
+  toast("已恢复到上一个版本 ✓");
+}
+function renderUndoBtn() {
+  const b = document.getElementById("undoBtn");
+  if (!b) return;
+  b.textContent = UNDO.length ? `↩ 撤销 (${UNDO.length})` : "↩ 撤销";
+  b.style.opacity = UNDO.length ? 1 : 0.4;
+}
+
+const on = {}; Object.keys(CATS).forEach(k => on[k] = true); Object.keys(RETIRED).forEach(k => on[k] = true);
 let query = "";
+let collapsed = new Set(JSON.parse(localStorage.getItem("lm_tl_collapsed") || "[]"));
+function saveCollapsed() { localStorage.setItem("lm_tl_collapsed", JSON.stringify([...collapsed])); }
+
 const ym = d => d.slice(0,7);
-const months = () => [...new Set(EVENTS.map(e => ym(e.d)))].sort();
+const monthsAsc = () => [...new Set(EVENTS.map(e => ym(e.d)))].sort();
 const fmtDate = d => d.slice(5).replace("-", "/").replace("/00", "?");
+
+const ANNIV_START = "2025-12-13";   // 在一起起始日（恋爱天数从这里算，可改）
+const BIRTH_M = "2007-11-16";       // 穆祉丞生日
+const BIRTH_L = "2010-01-08";       // 王橹杰生日
+
+function openCal() {
+  const c = document.getElementById("fDateCal");
+  if (c.showPicker) { try { c.showPicker(); return; } catch(e) {} }
+  c.click();
+}
+function fixDate(v) {
+  v = (v || "").trim();
+  let m = v.match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/) || v.match(/^(\d{4})(\d{2})(\d{2})$/);
+  if (!m) return "";
+  return m[1] + "-" + m[2].padStart(2, "0") + "-" + m[3].padStart(2, "0");
+}
+const daysFrom = from => Math.max(0, Math.floor((Date.now() - new Date(from + "T00:00:00")) / 86400000));
+function ageYMD(birth) {
+  const b = new Date(birth + "T00:00:00"), now = new Date();
+  let y = now.getFullYear() - b.getFullYear();
+  let lastB = new Date(now.getFullYear(), b.getMonth(), b.getDate());
+  if (now < lastB) { y--; lastB = new Date(now.getFullYear() - 1, b.getMonth(), b.getDate()); }
+  return y + "岁" + daysFrom(lastB.getFullYear() + "-" + String(lastB.getMonth()+1).padStart(2,"0") + "-" + String(lastB.getDate()).padStart(2,"0")) + "天";
+}
+function fillAnn() {
+  document.getElementById("annLove").textContent = daysFrom(ANNIV_START);
+  document.getElementById("annM").textContent = ageYMD(BIRTH_M);
+  document.getElementById("annL").textContent = ageYMD(BIRTH_L);
+}
+function colorNames(t) {
+  return String(t).replace(/穆祉丞/g, '<span style="color:#F4BFD3">穆祉丞</span>')
+                  .replace(/王橹杰/g, '<span style="color:#76d2e7">王橹杰</span>');
+}
 
 function toast(msg) {
   const t = document.getElementById("toast");
@@ -173,28 +395,426 @@ function toast(msg) {
   setTimeout(() => t.style.opacity = 0, 1800);
 }
 
+/* ========== 身份 / 评论 / 投票 ========== */
+let PROFILE = {};
+try { PROFILE = JSON.parse(localStorage.getItem("lm_tl_profile") || "{}"); } catch(e) {}
+function saveProfile() { localStorage.setItem("lm_tl_profile", JSON.stringify(PROFILE)); }
+
+let CMTS = {};
+try { CMTS = JSON.parse(localStorage.getItem("lm_tl_comments") || "{}"); } catch(e) {}
+function saveCmts() { localStorage.setItem("lm_tl_comments", JSON.stringify(CMTS)); }
+
+let VOTES = {};
+try { VOTES = JSON.parse(localStorage.getItem("lm_tl_votes") || "{}"); } catch(e) {}
+function saveVotes() { localStorage.setItem("lm_tl_votes", JSON.stringify(VOTES)); }
+
+const openPanels = new Set();
+const ekey = e => e.d + "|" + e.t;
+const safeKey = k => encodeURIComponent(k);
+
+const ROLE_COLORS = { "夕": "#f59e0b", "奈": "#06b6d4", "爻": "#ec4899", "游客": "#6b7280" };
+const ROLE_PWD = { "夕": "1230", "奈": "1127", "爻": "0105" };   // 游客免口令
+function avaHTML(p, size) {
+  size = size || 22;
+  if (p.a) return `<img src="${p.a}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;vertical-align:middle;flex:0 0 auto">`;
+  const c = ROLE_COLORS[p.n] || PALETTE[((p.n || "?").charCodeAt(0)) % PALETTE.length];
+  return `<span style="display:inline-flex;align-items:center;justify-content:center;width:${size}px;height:${size}px;border-radius:50%;background:${c};color:#fff;font-size:${Math.round(size*0.55)}px;vertical-align:middle;flex:0 0 auto">${(p.n || "?")[0]}</span>`;
+}
+function renderMe() {
+  const el = document.getElementById("meChip");
+  el.innerHTML = PROFILE.n ? `${avaHTML(PROFILE, 24)}<b style="margin-left:6px;font-size:14px">${PROFILE.n}</b>` : "";
+}
+
+function profileModal() {
+  let tmpAvatar = PROFILE.a || "";
+  const roles = ["夕", "奈", "爻", "游客"];
+  modalRoot.innerHTML = `<div class="m-overlay"><div class="m-box">
+    <div class="m-title">选择你的身份</div>
+    <div class="m-body">
+      ${roles.map(r => `<label class="m-opt"><input type="radio" name="role" value="${r}" ${PROFILE.n === r ? "checked" : ""}><span class="dot" style="background:${ROLE_COLORS[r]}"></span>${r}</label>`).join("")}
+      <div class="m-opt" style="cursor:default">
+        <span id="avaPrev">${avaHTML({ n: PROFILE.n || "?", a: tmpAvatar }, 40)}</span>
+        <label style="margin-left:10px;font-size:13px;color:#888;cursor:pointer;text-decoration:underline">上传自定义头像（可选）
+        <input type="file" id="avaFile" accept="image/*" style="display:none"></label>
+      </div>
+    </div>
+    <div class="m-btns"><button id="pOk" class="m-primary">确认进入</button></div>
+  </div></div>`;
+  modalRoot.querySelectorAll("input[name=role]").forEach(r => r.onchange = () => {
+    document.getElementById("avaPrev").innerHTML = avaHTML({ n: r.value, a: tmpAvatar }, 40);
+  });
+  document.getElementById("avaFile").onchange = e => {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => { const img = new Image(); img.onload = () => {
+      const cv = document.createElement("canvas"); cv.width = cv.height = 64;
+      cv.getContext("2d").drawImage(img, 0, 0, 64, 64);
+      tmpAvatar = cv.toDataURL("image/png");
+      const sel = modalRoot.querySelector("input[name=role]:checked");
+      document.getElementById("avaPrev").innerHTML = avaHTML({ n: sel ? sel.value : "?", a: tmpAvatar }, 40);
+      toast("头像已设置 ✓");
+    }; img.src = r.result; };
+    r.readAsDataURL(f);
+  };
+  document.getElementById("pOk").onclick = () => {
+    const sel = modalRoot.querySelector("input[name=role]:checked");
+    if (!sel) { toast("请先选择一个角色"); return; }
+    if (ROLE_PWD[sel.value]) {
+      const role = sel.value, av = tmpAvatar;
+      modalRoot.innerHTML = "";
+      pwdModal(role, av);
+      return;
+    }
+    PROFILE = { n: sel.value, a: tmpAvatar };
+    saveProfile(); modalRoot.innerHTML = "";
+    renderMe(); renderAll();
+    toast(`欢迎，${PROFILE.n} ✓`);
+  };
+}
+
+function pwdModal(role, tmpAvatar) {
+  modalRoot.innerHTML = `<div class="m-overlay"><div class="m-box">
+    <div class="m-title">身份「${role}」需要口令</div>
+    <div class="m-body"><input type="password" id="rolePwd" inputmode="numeric" pattern="[0-9]*" autocomplete="new-password" placeholder="口令（纯数字）" style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1px solid rgba(128,128,128,.5);background:transparent;font-size:15px"></div>
+    <div class="m-btns"><button data-v="no">返回</button><button data-v="yes" class="m-primary">确认</button></div>
+  </div></div>`;
+  const inp = document.getElementById("rolePwd");
+  setTimeout(() => inp.focus(), 60);
+  const tryPwd = () => {
+    if ((inp.value || "").trim() !== ROLE_PWD[role]) {
+      toast("口令错误"); inp.value = ""; inp.focus(); return;
+    }
+    PROFILE = { n: role, a: tmpAvatar };
+    saveProfile(); modalRoot.innerHTML = "";
+    renderMe(); renderAll();
+    toast(`欢迎，${role} ✓`);
+  };
+  inp.addEventListener("keydown", e => { if (e.key === "Enter") tryPwd(); });
+  modalRoot.querySelector("button[data-v=yes]").onclick = tryPwd;
+  modalRoot.querySelector("button[data-v=no]").onclick = () => profileModal();
+}
+
+function myVote(key) { const v = VOTES[key]; return v && v[PROFILE.n] ? v[PROFILE.n].s : null; }
+function vlist(key, side) {
+  const v = VOTES[key] || {};
+  return Object.entries(v).filter(([, x]) => x.s === side).map(([n, x]) => ({ n, a: x.a }));
+}
+function voteFor(keyEnc, side) {
+  const key = decodeURIComponent(keyEnc);
+  if (!PROFILE.n) { profileModal(); return; }
+  if (!VOTES[key]) VOTES[key] = {};
+  const cur = VOTES[key][PROFILE.n];
+  if (cur && cur.s === side) delete VOTES[key][PROFILE.n];
+  else VOTES[key][PROFILE.n] = { s: side, a: PROFILE.a || "" };
+  saveVotes(); renderAll();
+}
+function voteHTML(key) {
+  const red = vlist(key, "red"), blue = vlist(key, "blue"), abst = vlist(key, "abs");
+  const tot = red.length + blue.length;
+  const rw = tot ? Math.round(red.length / tot * 100) : 50;
+  const bw = 100 - rw;
+  const mine = myVote(key);
+  const avas = arr => arr.map(p => `<span data-tip="${p.n}" style="margin:1px">${avaHTML(p, 22)}</span>`).join("");
+  return `<div class="vote-box">
+    <div class="vote-btns">
+      <button class="vb red ${mine === "red" ? "on" : ""}" onclick="voteFor('${safeKey(key)}','red')">🍉 吃瓜不信瓜</button>
+      <button class="vb blue ${mine === "blue" ? "on" : ""}" onclick="voteFor('${safeKey(key)}','blue')">💙 我信了</button>
+      <button class="vb gray ${mine === "abs" ? "on" : ""}" onclick="voteFor('${safeKey(key)}','abs')">将信将疑</button>
+    </div>
+    <div class="vote-bar"><div class="vred" style="width:${rw}%">${tot ? rw + "%" : ""}</div><div class="vblue" style="width:${bw}%">${tot ? bw + "%" : ""}</div></div>
+    <div class="vote-avas"><div class="vside">${avas(red)}</div><div class="vside right">${avas(blue)}</div></div>
+    ${abst.length ? `<div class="vabs">将信将疑：${avas(abst)}</div>` : ""}
+    ${tot + abst.length === 0 ? `<div class="vhint">还没有人投票，来做第一个投瓜的人～</div>` : ""}
+  </div>`;
+}
+function cmtsOf(key) { return CMTS[key] || []; }
+const fmtTs = ts => new Date(ts).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+const cmtId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+let replyOpen = "", editOpen = "";
+
+function migrateCmts() {
+  let dirty = false;
+  Object.keys(CMTS).forEach(k => {
+    CMTS[k] = (CMTS[k] || []).map((c, i) => {
+      if (c.id && Array.isArray(c.r)) return c;
+      dirty = true;
+      return { id: "old" + i + "_" + (c.ts || 0), n: c.n, a: c.a || "", t: c.t, ts: c.ts || 0, r: [] };
+    });
+  });
+  if (dirty) saveCmts();
+}
+
+function openReply(sk, rid) {
+  replyOpen = sk + ":" + rid; editOpen = ""; renderAll();
+  setTimeout(() => { const i = document.getElementById("cr-" + sk + "-" + rid); if (i) i.focus(); }, 60);
+}
+function sendReply(sk, rid) {
+  if (!PROFILE.n) { profileModal(); return; }
+  const key = decodeURIComponent(sk);
+  const inp = document.getElementById("cr-" + sk + "-" + rid);
+  const t = (inp.value || "").trim(); if (!t) return;
+  const c = (CMTS[key] || []).find(x => x.id === rid); if (!c) return;
+  c.r = c.r || [];
+  c.r.push({ n: PROFILE.n, a: PROFILE.a || "", t, ts: Date.now() });
+  replyOpen = ""; saveCmts(); renderAll();
+}
+async function delCmt(sk, rid) {
+  const key = decodeURIComponent(sk);
+  const c = (CMTS[key] || []).find(x => x.id === rid); if (!c) return;
+  const nr = (c.r || []).length;
+  const ok = await confirmDlg(`确定删除这条评论${nr ? `（含 ${nr} 条回复，会一并删除）` : ""}？`, "删除");
+  if (!ok) return;
+  CMTS[key] = CMTS[key].filter(x => x.id !== rid);
+  saveCmts(); renderAll(); toast("评论已删除");
+}
+async function delReply(sk, rid, ri) {
+  const key = decodeURIComponent(sk);
+  const c = (CMTS[key] || []).find(x => x.id === rid); if (!c || !c.r) return;
+  const ok = await confirmDlg("确定删除这条回复？", "删除");
+  if (!ok) return;
+  c.r.splice(ri, 1); saveCmts(); renderAll();
+}
+function startCmtEdit(sk, rid) {
+  editOpen = sk + ":" + rid; replyOpen = ""; renderAll();
+  setTimeout(() => { const i = document.getElementById("ce-" + sk + "-" + rid); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, 60);
+}
+function cancelCmtEdit() { editOpen = ""; renderAll(); }
+function saveCmtEdit(sk, rid) {
+  const key = decodeURIComponent(sk);
+  const inp = document.getElementById("ce-" + sk + "-" + rid);
+  const t = (inp.value || "").trim(); if (!t) return;
+  const c = (CMTS[key] || []).find(x => x.id === rid);
+  if (c) { c.t = t; c.ts = Date.now(); saveCmts(); }
+  editOpen = ""; renderAll(); toast("已修改 ✓");
+}
+function findCmt(key, rid) { return (CMTS[key] || []).find(x => x.id === rid); }
+function cmtHTML(key) {
+  const sk = safeKey(key);
+  const rows = cmtsOf(key).map(c => {
+    const own = PROFILE.n && c.n === PROFILE.n;
+    const rid = c.id;
+    const acts = [];
+    if (own) {
+      acts.push(`<a onclick="startCmtEdit('${sk}','${rid}')">编辑</a>`);
+      acts.push(`<a class="danger" onclick="delCmt('${sk}','${rid}')">删除</a>`);
+    }
+    acts.push(`<a onclick="openReply('${sk}','${rid}')">回复</a>`);
+    let body;
+    if (editOpen === sk + ":" + rid) {
+      body = `<div class="cmt-input" style="margin-top:4px"><input id="ce-${sk}-${rid}" value="${c.t.replace(/"/g, "&quot;")}" onkeydown="if (event.key === 'Enter') saveCmtEdit('${sk}','${rid}')"><button onclick="saveCmtEdit('${sk}','${rid}')">保存</button><button class="ghost" onclick="cancelCmtEdit()">取消</button></div>`;
+    } else {
+      body = `<div class="cmt-text">${colorNames(c.t)}</div>`;
+    }
+    const reps = (c.r || []).map((rp, ri) => `<div class="cmt-reply">${avaHTML(rp, 18)}
+      <div style="flex:1"><span class="cmt-name">${rp.n}</span><span class="cmt-time">${fmtTs(rp.ts)}</span>
+      <div class="cmt-text">${colorNames(rp.t)}${PROFILE.n && rp.n === PROFILE.n ? ` <a class="danger" onclick="delReply('${sk}','${rid}',${ri})">删除</a>` : ""}</div></div></div>`).join("");
+    const replyBox = replyOpen === sk + ":" + rid
+      ? `<div class="cmt-input" style="margin:4px 0 0 30px"><input id="cr-${sk}-${rid}" placeholder="回复 ${c.n}…" onkeydown="if (event.key === 'Enter') sendReply('${sk}','${rid}')"><button onclick="sendReply('${sk}','${rid}')">回复</button></div>`
+      : "";
+    return `<div class="cmt-row">${avaHTML(c, 22)}
+      <div style="flex:1"><span class="cmt-name">${c.n}</span><span class="cmt-time">${fmtTs(c.ts)}</span>
+      <span class="cmt-acts">${acts.join("")}</span>${body}
+      ${reps ? `<div class="replies">${reps}</div>` : ""}${replyBox}</div></div>`;
+  }).join("");
+  return `<div class="cmt-box">
+    ${rows || `<div class="vhint">还没有评论，来唠两句～</div>`}
+    <div class="cmt-input"><input type="text" id="ci-${sk}" placeholder="以 ${PROFILE.n || "?"} 的身份说点什么…" onkeydown="if (event.key === 'Enter') sendCmt('${sk}')">
+    <button onclick="sendCmt('${sk}')">发送</button></div>
+  </div>`;
+}
+function togglePanel(keyEnc) {
+  const key = decodeURIComponent(keyEnc);
+  openPanels.has(key) ? openPanels.delete(key) : openPanels.add(key);
+  renderAll();
+}
+function sendCmt(keyEnc) {
+  const key = decodeURIComponent(keyEnc);
+  if (!PROFILE.n) { profileModal(); return; }
+  const inp = document.getElementById("ci-" + keyEnc);
+  const t = inp.value.trim();
+  if (!t) return;
+  if (!CMTS[key]) CMTS[key] = [];
+  CMTS[key].push({ id: cmtId(), n: PROFILE.n, a: PROFILE.a || "", t, ts: Date.now(), r: [] });
+  saveCmts(); renderAll();
+}
+function panelHTML(key) {
+  const sk = safeKey(key);
+  return `<div class="tl-panel">
+    <div class="tl-panel-head"><span class="p-t">投票 & 评论</span><button class="p-collapse" onclick="togglePanel('${sk}')" data-tip="折叠此面板">收起 ▴</button></div>
+    ${voteHTML(key)}<div class="pdiv"></div>${cmtHTML(key)}
+  </div>`;
+}
+
+/* ========== 弹窗 ========== */
+const modalRoot = document.getElementById("modalRoot");
+function showModal(title, bodyHTML, btns) {
+  return new Promise(res => {
+    modalRoot.innerHTML = `<div class="m-overlay"><div class="m-box">
+      <div class="m-title">${title}</div><div class="m-body">${bodyHTML}</div>
+      <div class="m-btns">${btns.map(b => `<button data-v="${b.v}" class="${b.primary ? "m-primary" : ""}">${b.label}</button>`).join("")}</div>
+    </div></div>`;
+    const close = v => { modalRoot.innerHTML = ""; res(v); };
+    modalRoot.querySelectorAll("button[data-v]").forEach(b => b.onclick = () => close(b.dataset.v));
+  });
+}
+function confirmDlg(msg, okLabel) {
+  return showModal("确认", `<p style="margin:0">${msg}</p>`,
+    [{label:"取消", v:"no"}, {label:okLabel || "确定", v:"yes", primary:true}])
+    .then(v => v === "yes");
+}
+
+/* ========== 事件操作 ========== */
 function addEvent() {
-  const d = document.getElementById("fDate").value;
+  const d = fixDate(document.getElementById("fDate").value);
   const cat = document.getElementById("fCat").value;
   const t = document.getElementById("fText").value.trim();
-  if (!d) { toast("请先选择日期"); return; }
+  if (!d) { toast("日期格式不对，示例：2026-09-17 或 20260917"); return; }
   if (!t) { toast("请填写事件描述"); return; }
+  snapshot();
   EVENTS.push({d, cat, t});
-  EVENTS.sort((a,b) => a.d.localeCompare(b.d));
   save();
   document.getElementById("fText").value = "";
   renderAll();
   toast("已添加 ✓");
 }
 
-function delEvent(i) {
-  if (!confirm("删除这条记录？")) return;
+async function delEvent(i) {
+  const ok = await confirmDlg(`确定删除这条记录吗？<br><span style="color:#999;font-size:13px">${EVENTS[i].t}</span>`, "删除");
+  if (!ok) return;
+  snapshot();
   EVENTS.splice(i, 1);
   save(); renderAll();
+  toast("已删除");
 }
 
+function startEdit(i, el) {
+  if (el.querySelector("input")) return;
+  const old = EVENTS[i].t;
+  el.innerHTML = "";
+  const inp = document.createElement("input");
+  inp.type = "text"; inp.value = old;
+  el.appendChild(inp);
+  inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length);
+  let done = false;
+  const commit = okSave => {
+    if (done) return; done = true;
+    if (okSave) {
+      const v = inp.value.trim();
+      if (v && v !== old) { snapshot(); EVENTS[i].t = v; save(); toast("已修改 ✓"); }
+    }
+    renderAll();
+  };
+  inp.addEventListener("keydown", e => {
+    if (e.key === "Enter") commit(true);
+    if (e.key === "Escape") commit(false);
+  });
+  inp.addEventListener("blur", () => commit(true));
+}
+
+async function chooseCat(i) {
+  const cur = EVENTS[i].cat;
+  const opts = Object.keys(CATS).map(k =>
+    `<label class="m-opt"><input type="radio" name="pickcat" value="${k}" ${k===cur?"checked":""}>
+     <span class="dot" style="background:${CATS[k].c}"></span>${CATS[k].label}</label>`).join("");
+  modalRoot.innerHTML = `<div class="m-overlay"><div class="m-box">
+    <div class="m-title">修改这条记录的分类</div>
+    <div class="m-body">${opts}</div>
+    <div class="m-btns"><button data-v="no">取消</button><button data-v="yes" class="m-primary">确定</button></div>
+  </div></div>`;
+  const v = await new Promise(res => {
+    modalRoot.querySelectorAll("button[data-v]").forEach(b => b.onclick = () => {
+      const sel = modalRoot.querySelector("input[name=pickcat]:checked");
+      const val = b.dataset.v === "yes" && sel ? sel.value : null;
+      modalRoot.innerHTML = ""; res(val);
+    });
+  });
+  if (v) { snapshot(); EVENTS[i].cat = v; save(); renderAll(); toast("分类已修改 ✓"); }
+}
+
+function collapseAll() { monthsAsc().forEach(m => collapsed.add(m)); saveCollapsed(); renderAll(); }
+function expandAll() { collapsed.clear(); saveCollapsed(); renderAll(); }
+
+function toggleMonth(m) {
+  collapsed.has(m) ? collapsed.delete(m) : collapsed.add(m);
+  saveCollapsed(); renderAll();
+}
+
+/* ========== 分类管理 ========== */
+function manageCats() {
+  const keys = Object.keys(CATS);
+  const rows = keys.map(k => {
+    const n = EVENTS.filter(e => e.cat === k).length;
+    return `<div class="m-catrow"><span class="dot" style="background:${CATS[k].c}"></span>
+      ${CATS[k].label} <span class="cnt">${n} 条</span>
+      <button onclick="delCat('${k}')" data-tip="删除分类">×</button></div>`;
+  }).join("");
+  modalRoot.innerHTML = `<div class="m-overlay"><div class="m-box">
+    <div class="m-title" style="display:flex;justify-content:space-between;align-items:center">管理分类<button class="p-collapse" data-v="close">×</button></div>
+    <div class="m-body">${rows || "<p style='color:#999'>暂无分类</p>"}
+      <div class="m-addrow"><input id="newCatName" placeholder="新分类名称，如：综艺路透">
+      <button onclick="addCat()">添加</button><button data-v="close" class="m-primary" style="padding:7px 12px">完成</button></div>
+    </div>
+  </div></div>`;
+  modalRoot.querySelector("button[data-v=close]").onclick = () => { modalRoot.innerHTML = ""; };
+  const inp = document.getElementById("newCatName");
+  inp.addEventListener("keydown", e => { if (e.key === "Enter") addCat(); });
+}
+
+function addCat() {
+  const name = document.getElementById("newCatName").value.trim();
+  if (!name) { toast("请输入分类名称"); return; }
+  const used = Object.values(CATS).map(v => v.c);
+  const c = PALETTE.find(p => !used.includes(p)) || PALETTE[Object.keys(CATS).length % PALETTE.length];
+  CATS["c" + Date.now()] = { label: name, c };
+  on[Object.keys(CATS).slice(-1)[0]] = true;
+  saveCats(); renderAll(); manageCats();
+  toast("已添加分类 ✓");
+}
+
+async function delCat(k) {
+  const label = CATS[k].label;
+  const n = EVENTS.filter(e => e.cat === k).length;
+  modalRoot.innerHTML = "";
+  if (n > 0) {
+    const others = Object.keys(CATS).filter(x => x !== k);
+    const opts = others.map(x =>
+      `<label class="m-opt"><input type="radio" name="dc" value="${x}">
+       <span class="dot" style="background:${CATS[x].c}"></span>更新为「${CATS[x].label}」</label>`).join("")
+      + `<label class="m-opt"><input type="radio" name="dc" value="__keep" checked>
+       <span class="dot" style="background:#999"></span>不修改，保留原标记</label>`;
+    const v = await new Promise(res => {
+      modalRoot.innerHTML = `<div class="m-overlay"><div class="m-box">
+        <div class="m-title">分类「${label}」下有 ${n} 条记录</div>
+        <div class="m-body">${opts}</div>
+        <div class="m-btns"><button data-v="no">取消</button><button data-v="yes" class="m-primary">确定</button></div>
+      </div></div>`;
+      modalRoot.querySelectorAll("button[data-v]").forEach(b => b.onclick = () => {
+        const sel = modalRoot.querySelector("input[name=dc]:checked");
+        const val = b.dataset.v === "yes" ? (sel ? sel.value : null) : null;
+        modalRoot.innerHTML = ""; res(val);
+      });
+    });
+    if (!v) { manageCats(); return; }
+    if (v === "__keep") {
+      RETIRED[k] = CATS[k];
+    } else {
+      snapshot();
+      EVENTS.forEach(e => { if (e.cat === k) e.cat = v; });
+      save();
+    }
+  } else {
+    const ok = await confirmDlg(`确定删除分类「${label}」？`, "删除");
+    if (!ok) { manageCats(); return; }
+  }
+  delete CATS[k];
+  saveCats(); renderAll(); manageCats();
+  toast("分类已删除");
+}
+
+/* ========== 导入导出 ========== */
 function exportJSON() {
-  const blob = new Blob([JSON.stringify(EVENTS, null, 2)], {type: "application/json"});
+  const payload = { events: EVENTS, comments: CMTS, votes: VOTES };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type: "application/json"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "LM时间线_" + new Date().toISOString().slice(0,10) + ".json";
@@ -202,39 +822,124 @@ function exportJSON() {
   toast("已导出，把文件发给朋友即可");
 }
 
+function toggleDD() { document.getElementById("ddMenu").classList.toggle("open"); }
+function ddAction(a) {
+  document.getElementById("ddMenu").classList.remove("open");
+  if (a === "import") document.getElementById("importFile").click();
+  else if (a === "exportJSON") exportJSON();
+  else if (a === "exportCSV") exportCSV();
+}
+document.addEventListener("click", e => {
+  const m = document.getElementById("ddMenu");
+  if (m && m.classList.contains("open") && !e.target.closest(".dd-wrap")) m.classList.remove("open");
+});
+
+function csvCell(s) {
+  s = String(s);
+  return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function exportCSV() {
+  const rows = EVENTS.map(e => [e.d, catInfo(e.cat).label, e.t].map(csvCell).join(","));
+  const text = "\uFEFF日期,分类,事件\n" + rows.join("\n");
+  const blob = new Blob([text], {type: "text/csv;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "LM时间线_" + new Date().toISOString().slice(0,10) + ".csv";
+  a.click();
+  toast("已导出 Excel 文件");
+}
+function matchCatByLabel(label) {
+  label = (label || "").trim();
+  for (const k of Object.keys(CATS)) if (CATS[k].label === label) return k;
+  for (const k of Object.keys(RETIRED)) if (RETIRED[k].label === label) return k;
+  if (!label) return "meet";
+  const used = Object.values(CATS).map(v => v.c);
+  const c = PALETTE.find(p => !used.includes(p)) || PALETTE[Object.keys(CATS).length % PALETTE.length];
+  const k = "c" + Date.now() + Math.floor(Math.random() * 1000);
+  CATS[k] = { label, c };
+  on[k] = true;
+  saveCats();
+  return k;
+}
+function parseCSV(text) {
+  const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/).filter(l => l.trim());
+  if (!lines.length) return [];
+  const delim = lines[0].includes("\t") ? "\t" : lines[0].includes(";") ? ";" : ",";
+  const splitLine = l => {
+    const out = []; let cur = "", inQ = false;
+    for (let i = 0; i < l.length; i++) {
+      const ch = l[i];
+      if (inQ) {
+        if (ch === '"') { if (l[i+1] === '"') { cur += '"'; i++; } else inQ = false; }
+        else cur += ch;
+      } else if (ch === '"') inQ = true;
+      else if (ch === delim) { out.push(cur); cur = ""; }
+      else cur += ch;
+    }
+    out.push(cur);
+    return out.map(s => s.trim());
+  };
+  let rows = lines.map(splitLine);
+  if (/日期|date/i.test(rows[0][0] || "")) rows.shift();
+  const recs = [];
+  rows.forEach(r => {
+    if (r.length < 2) return;
+    const dm = String(r[0]).match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
+    if (!dm) return;
+    const d = dm[1] + "-" + dm[2].padStart(2,"0") + "-" + dm[3].padStart(2,"0");
+    let cat, t;
+    if (r.length >= 3) { cat = matchCatByLabel(r[1]); t = r.slice(2).join(delim); }
+    else { cat = "meet"; t = r[1]; }
+    if (t) recs.push({d, cat, t});
+  });
+  return recs;
+}
 function importJSON(ev) {
   const f = ev.target.files[0];
   if (!f) return;
   const r = new FileReader();
   r.onload = () => {
+    let recs = [];
     try {
-      const a = JSON.parse(r.result);
-      if (!Array.isArray(a)) throw 0;
-      const seen = new Set(EVENTS.map(e => e.d + "|" + e.t));
-      let n = 0;
-      a.forEach(e => {
-        if (e && e.d && e.t && CATS[e.cat] && !seen.has(e.d + "|" + e.t)) {
-          EVENTS.push({d: e.d, cat: e.cat, t: e.t}); n++;
-        }
-      });
-      EVENTS.sort((x,y) => x.d.localeCompare(y.d));
-      save(); renderAll();
-      toast(n ? `已合并 ${n} 条新记录` : "没有新记录（可能都已存在）");
-    } catch(e) { toast("文件格式不对"); }
+      if (/\.json$/i.test(f.name)) {
+        const a = JSON.parse(r.result);
+        const arr = Array.isArray(a) ? a : (a.events || []);
+        if (!Array.isArray(arr)) throw 0;
+        arr.forEach(e => {
+          if (e && e.d && e.t && (CATS[e.cat] || RETIRED[e.cat])) recs.push({d: e.d, cat: e.cat, t: e.t});
+        });
+        if (a.comments) Object.entries(a.comments).forEach(([k, list]) => {
+          if (!Array.isArray(list)) return;
+          if (!CMTS[k]) CMTS[k] = [];
+          const seen = new Set(CMTS[k].map(c => c.n + "|" + c.t + "|" + c.ts));
+          list.forEach(c => { if (c && c.n && c.t && !seen.has(c.n + "|" + c.t + "|" + c.ts)) CMTS[k].push(c); });
+        });
+        if (a.votes) Object.entries(a.votes).forEach(([k, v]) => {
+          if (!v || typeof v !== "object") return;
+          if (!VOTES[k]) VOTES[k] = {};
+          Object.entries(v).forEach(([n, x]) => { if (!VOTES[k][n]) VOTES[k][n] = x; });
+        });
+      } else {
+        recs = parseCSV(String(r.result));
+      }
+    } catch(e) { toast("文件格式不对"); ev.target.value = ""; return; }
+    const seen = new Set(EVENTS.map(e => e.d + "|" + e.t));
+    let n = 0;
+    snapshot();
+    recs.forEach(rec => {
+      const key = rec.d + "|" + rec.t;
+      if (!seen.has(key)) { EVENTS.push(rec); seen.add(key); n++; }
+    });
+    saveCmts(); saveVotes();
+    save(); renderAll();
+    toast(n ? `已合并 ${n} 条新记录（含评论和投票）` : "没有新记录（评论和投票已同步）");
   };
   r.readAsText(f);
   ev.target.value = "";
 }
-
-function resetAll() {
-  if (!confirm("确定清空本机全部记录，恢复默认数据？")) return;
-  EVENTS = JSON.parse(JSON.stringify(DEFAULT_EVENTS));
-  save(); renderAll();
-  toast("已恢复默认");
-}
-
+/* ========== 渲染 ========== */
 function filtered() {
-  return EVENTS.map((e,i) => ({...e, i})).filter(e => on[e.cat] && (!query || e.t.toLowerCase().includes(query)));
+  return EVENTS.map((e,i) => ({...e, i})).filter(e => on[e.cat] !== false && (!query || e.t.toLowerCase().includes(query)));
 }
 
 function renderCatSelect() {
@@ -245,12 +950,14 @@ function renderCatSelect() {
 function renderChips() {
   const box = document.getElementById("tlChips");
   box.innerHTML = "";
-  Object.entries(CATS).forEach(([k, v]) => {
+  Object.keys(CATS).concat(Object.keys(RETIRED)).forEach(k => {
+    const v = catInfo(k);
     const n = EVENTS.filter(e => e.cat === k).length;
     const b = document.createElement("button");
-    b.className = "tl-chip " + (on[k] ? "on" : "off");
+    b.className = "tl-chip " + (on[k] !== false ? "on" : "off");
+    b.title = v.label;
     b.innerHTML = `<span class="dot" style="--c:${v.c}"></span>${v.label}<span class="n">${n}</span>`;
-    b.onclick = () => { on[k] = !on[k]; renderAll(); };
+    b.onclick = () => { on[k] = on[k] === false; renderAll(); };
     box.appendChild(b);
   });
 }
@@ -258,18 +965,21 @@ function renderChips() {
 function renderStrip(fe) {
   const strip = document.getElementById("tlStrip");
   strip.innerHTML = "";
-  months().forEach(m => {
+  monthsAsc().forEach(m => {
     const evs = fe.filter(e => ym(e.d) === m);
     const col = document.createElement("div");
     col.className = "tl-month";
     const dots = evs.map(e =>
-      `<span class="tl-dot" style="--c:${CATS[e.cat].c}" title="${fmtDate(e.d)} · ${e.t.replace(/"/g,"&quot;")}"></span>`
+      `<span class="tl-dot" style="--c:${catInfo(e.cat).c}" data-tip="${fmtDate(e.d)} · ${catInfo(e.cat).label} · ${e.t.replace(/"/g,"&quot;")}"></span>`
     ).join("");
     col.innerHTML = `<div class="tl-track"><div class="tl-mdots">${dots}</div></div>
       <div class="tl-mlab">${m.slice(2).replace("-","/")}${evs.length ? " · " + evs.length : ""}</div>`;
     col.onclick = () => {
-      const el = document.getElementById("sect-" + m);
-      if (el) el.scrollIntoView({behavior:"smooth", block:"start"});
+      if (collapsed.has(m)) { collapsed.delete(m); saveCollapsed(); renderAll(); }
+      setTimeout(() => {
+        const el = document.getElementById("sect-" + m);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 60);
     };
     strip.appendChild(col);
   });
@@ -278,26 +988,47 @@ function renderStrip(fe) {
 function renderDetail(fe) {
   const box = document.getElementById("tlDetail");
   box.innerHTML = "";
-  const list = months().filter(m => fe.some(e => ym(e.d) === m));
+  if (query) {
+    const bar = document.createElement("div");
+    bar.className = "tl-searchbar";
+    const info = document.createElement("span");
+    info.textContent = `🔍 关键字「${query}」 · 共 ${fe.length} 条`;
+    const btn = document.createElement("button");
+    btn.className = "tl-toggle"; btn.textContent = "显示全部内容"; btn.onclick = clearSearch;
+    bar.appendChild(info); bar.appendChild(btn);
+    box.appendChild(bar);
+  }
+  const list = monthsAsc().reverse().filter(m => fe.some(e => ym(e.d) === m));
   if (!list.length) {
     box.innerHTML = `<div class="tl-empty">没有匹配的事件，试试调整筛选或搜索词</div>`;
     return;
   }
   list.forEach(m => {
-    const evs = fe.filter(e => ym(e.d) === m);
+    const evs = fe.filter(e => ym(e.d) === m).sort((a,b) => b.d.localeCompare(a.d));
     const sect = document.createElement("div");
     sect.className = "tl-sect";
     sect.id = "sect-" + m;
-    let html = `<div class="tl-mh"><h3>${m.slice(0,4)} 年 ${Number(m.slice(5))} 月</h3><span>${evs.length} 条</span></div>`;
-    evs.forEach(e => {
-      const v = CATS[e.cat];
-      html += `<div class="tl-row">
-        <span class="tl-date" style="--c:${v.c}"><span class="dot"></span>${fmtDate(e.d)}</span>
-        <span class="tl-txt">${e.t}</span>
-        <span class="tl-tag" style="--c:${v.c}">${v.label}</span>
-        <button class="tl-del" onclick="delEvent(${e.i})" title="删除">×</button>
-      </div>`;
-    });
+    const isCollapsed = collapsed.has(m);
+    let html = `<div class="tl-mh" onclick="toggleMonth('${m}')">
+      <span class="tl-arr">${isCollapsed ? "▸" : "▾"}</span>
+      <h3>${m.slice(0,4)} 年 ${Number(m.slice(5))} 月</h3><span>${evs.length} 条</span></div>`;
+    if (!isCollapsed) {
+      evs.forEach(e => {
+        const v = catInfo(e.cat);
+        const key = ekey(e), sk = safeKey(key);
+        const nCmt = cmtsOf(key).length;
+        const nVote = Object.keys(VOTES[key] || {}).length;
+        html += `<div class="tl-row">
+          <span class="tl-date">${fmtDate(e.d)}</span>
+          <button class="tl-catdot" style="--c:${v.c}" onclick="chooseCat(${e.i})" data-tip="分类：${v.label}（点击修改）"></button>
+          <span class="tl-txt" onclick="startEdit(${e.i}, this)" data-tip="点击修改文字">${colorNames(e.t)}</span>
+          <span class="tl-tag" style="--c:${v.c}">${v.label}</span>
+          <button class="tl-toggle" onclick="togglePanel('${sk}')">💬 ${nCmt} · 🍉 ${nVote}</button>
+          <button class="tl-del" onclick="delEvent(${e.i})" data-tip="删除">×</button>
+        </div>`;
+        if (openPanels.has(key)) html += panelHTML(key);
+      });
+    }
     sect.innerHTML = html;
     box.appendChild(sect);
   });
@@ -305,25 +1036,101 @@ function renderDetail(fe) {
 
 function renderAll() {
   const fe = filtered();
+  renderCatSelect();
   renderChips();
   renderStrip(fe);
   renderDetail(fe);
   document.getElementById("tlCount").textContent = `${fe.length} / ${EVENTS.length} 条`;
+  renderUndoBtn();
 }
 
 document.getElementById("fText").addEventListener("keydown", e => {
   if (e.key === "Enter") addEvent();
 });
-document.getElementById("tlSearch").addEventListener("input", e => {
-  query = e.target.value.trim().toLowerCase();
+document.getElementById("fDate").addEventListener("blur", e => {
+  const f = fixDate(e.target.value);
+  if (f) e.target.value = f;
+});
+setInterval(fillAnn, 60000);
+function applyFilter() {
   const fe = filtered();
   renderStrip(fe); renderDetail(fe);
   document.getElementById("tlCount").textContent = `${fe.length} / ${EVENTS.length} 条`;
+}
+function doSearch() {
+  query = document.getElementById("tlSearch").value.trim().toLowerCase();
+  applyFilter();
+}
+function clearSearch() {
+  query = "";
+  document.getElementById("tlSearch").value = "";
+  renderAll();
+}
+document.getElementById("tlSearch").addEventListener("keydown", e => {
+  if (e.key === "Enter") doSearch();
+});
+document.getElementById("tlSearch").addEventListener("blur", e => {
+  if (!e.target.value.trim()) e.target.value = "";
 });
 
-renderCatSelect();
 document.getElementById("fDate").value = new Date().toISOString().slice(0,10);
+/* 公告栏隐藏彩蛋：两行可拖动，松手慢慢归位，拖过中线两行互换 */
+const annState = { swap: localStorage.getItem("lm_tl_annswap") === "1" };
+function applyAnnOrder() {
+  const m = document.getElementById("annLineM"), l = document.getElementById("annLineL");
+  const box = document.getElementById("annLines");
+  if (annState.swap) box.insertBefore(l, m); else box.insertBefore(m, l);
+}
+function initAnnDrag() {
+  ["annLineM", "annLineL"].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener("mousedown", e => {
+      e.preventDefault();
+      const other = document.getElementById(id === "annLineM" ? "annLineL" : "annLineM");
+      const startY = e.clientY, lh = el.offsetHeight || 30;
+      const move = ev => {
+        const dy = ev.clientY - startY;
+        const f = Math.max(-1, Math.min(1, dy / lh));
+        el.style.transform = `translateY(${dy}px)`;
+        other.style.transform = `translateY(${-f * lh}px)`;
+      };
+      const up = ev => {
+        document.removeEventListener("mousemove", move);
+        document.removeEventListener("mouseup", up);
+        const doSwap = Math.abs(ev.clientY - startY) > lh / 2;
+        el.style.transform = other.style.transform = "";
+        el.style.transition = other.style.transition = "";
+        if (doSwap) {
+          annState.swap = !annState.swap;
+          localStorage.setItem("lm_tl_annswap", annState.swap ? "1" : "0");
+          const r1 = el.getBoundingClientRect(), r2 = other.getBoundingClientRect();
+          applyAnnOrder();
+          const n1 = el.getBoundingClientRect(), n2 = other.getBoundingClientRect();
+          el.style.transform = `translateY(${r1.top - n1.top}px)`;
+          other.style.transform = `translateY(${r2.top - n2.top}px)`;
+          void el.offsetWidth;
+          el.style.transition = other.style.transition = "transform .7s cubic-bezier(.22,1,.36,1)";
+          el.style.transform = other.style.transform = "";
+          setTimeout(() => { el.style.transition = other.style.transition = ""; }, 750);
+        } else {
+          el.style.transition = other.style.transition = "transform .8s cubic-bezier(.22,1,.36,1)";
+          el.style.transform = other.style.transform = "";
+          setTimeout(() => { el.style.transition = other.style.transition = ""; }, 850);
+        }
+      };
+      document.addEventListener("mousemove", move);
+      document.addEventListener("mouseup", up);
+    });
+  });
+}
+
+renderMe();
+fillAnn();
+migrateCmts();
+applyAnnOrder();
+initAnnDrag();
 renderAll();
+if (!PROFILE.n) profileModal();
 </script>
 </body>
 </html>
