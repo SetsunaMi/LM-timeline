@@ -551,7 +551,11 @@ async function cloudPull(silent) {
       const r = await fetch(ghBase() + "?ref=main", { headers: ghHeaders() });
       if (r.status === 404) return;
       if (!r.ok) throw 0;
-      data = JSON.parse(await r.text());
+      const j = await r.json();
+      const bin = atob((j.content || "").replace(/\s/g, ""));
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      data = JSON.parse(new TextDecoder("utf-8").decode(bytes));
     } else {
       const r = await fetch(cloudURL(), { headers: cloudHeaders() });
       if (r.status === 404) return;
