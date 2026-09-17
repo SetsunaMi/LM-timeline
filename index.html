@@ -271,6 +271,9 @@
   <summary>使用说明</summary>
   <div style="margin-top:8px"><b>使用说明：</b>① 顶部表单选日期、分类、填描述点「添加」；② 点<b>事件文字</b>可直接修改，点<b>前面的颜色点</b>可单独改该条的分类；③ 点月份标题可折叠/展开（最新的月份在最上面）；⑦ 误删了点「↩ 撤销」可一步步恢复（最多存 30 步）；⑧ 批量更新：在 Excel 里按「日期/分类/事件」三列填好，另存为 CSV，点「导入」选它即可，不存在的分类会自动新建；④ 「管理分类」可新增/删除分类，删除时会询问原记录更新成什么；⑤ 鼠标移到记录上出现 × 删除（有确认弹窗）；⑥ 记录保存在本机浏览器，重要记录记得「导出 JSON」备份。</div>
 </details>
+<div style="text-align:center;margin-top:12px">
+  <a onclick="tokenModal()" data-tip="修改同步 Token" style="font-size:11px;color:rgba(128,128,128,.45);cursor:pointer">同步设置</a>
+</div>
 </div>
 
 <div class="tl-toast" id="toast"></div>
@@ -645,6 +648,41 @@ function cloudCfgModal() {
   };
 }
 
+/* Token 快速设置：首次使用自动弹一次，填过永不再弹；底部「同步设置」可改 */
+function tokenModal() {
+  modalRoot.innerHTML = `<div class="m-overlay"><div class="m-box">
+    <div class="m-title">设置同步 Token</div>
+    <div class="m-body" style="display:flex;flex-direction:column;gap:8px">
+      <div style="font-size:12px;color:#999;line-height:1.7">填入后三个人的评论、投票自动互通（数据存在 GitHub 仓库里）。如果已有「专属链接」则不用填，点开链接会自动配好。</div>
+      <input id="tkInput" class="cc-in" placeholder="github_pat_ 开头的一串" value="${CLOUD.host || ""}">
+    </div>
+    <div class="m-btns" style="justify-content:space-between">
+      <button id="tkSkip">暂时不用</button>
+      <button id="tkSave" class="m-primary">保存并同步</button>
+    </div>
+  </div></div>`;
+  document.getElementById("tkSkip").onclick = () => {
+    localStorage.setItem("lm_tl_token_asked", "1");
+    modalRoot.innerHTML = "";
+  };
+  document.getElementById("tkSave").onclick = () => {
+    const v = document.getElementById("tkInput").value.trim();
+    if (!v) { toast("请粘贴 Token"); return; }
+    CLOUD.provider = "github"; CLOUD.id = "SetsunaMi"; CLOUD.key = "LM-timeline"; CLOUD.host = v;
+    saveCloudCfg();
+    localStorage.setItem("lm_tl_token_asked", "1");
+    modalRoot.innerHTML = "";
+    toast("已保存，正在同步…");
+    cloudPull(false);
+    startCloudTimer();
+  };
+}
+function maybeAskToken() {
+  if (cloudReady()) return;
+  if (localStorage.getItem("lm_tl_token_asked") === "1") return;
+  tokenModal();
+}
+
 const openPanels = new Set();
 const ekey = e => e.d + "|" + e.t;
 const safeKey = k => encodeURIComponent(k);
@@ -767,6 +805,7 @@ function profileModal() {
     saveProfile(); modalRoot.innerHTML = "";
     renderMe(); renderAll();
     toast(`欢迎，${PROFILE.n} ✓`);
+    maybeAskToken();
   };
 }
 
@@ -786,6 +825,7 @@ function pwdModal(role, tmpAvatar) {
     saveProfile(); modalRoot.innerHTML = "";
     renderMe(); renderAll();
     toast(`欢迎，${role} ✓`);
+    maybeAskToken();
   };
   inp.addEventListener("keydown", e => { if (e.key === "Enter") tryPwd(); });
   modalRoot.querySelector("button[data-v=yes]").onclick = tryPwd;
@@ -1445,11 +1485,17 @@ renderAll();
   }
 })();
 
+let cloudTimerOn = false;
+function startCloudTimer() {
+  if (cloudTimerOn) return;
+  cloudTimerOn = true;
+  setInterval(() => cloudPull(true), 60000);
+}
 if (cloudReady()) {
   cloudPull(false);
-  if (cloudP() !== "jsonbin") setInterval(() => cloudPull(true), 60000);
+  if (cloudP() !== "jsonbin") startCloudTimer();
 }
-if (!PROFILE.n) profileModal();
+if (!PROFILE.n) profileModal(); else maybeAskToken();
 </script>
 </body>
 </html>
