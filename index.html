@@ -78,8 +78,9 @@
   /* 弹窗 */
   .m-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex;
                align-items: center; justify-content: center; z-index: 200; padding: 20px; }
-  .m-box { background: #fff; color: #111; border-radius: 12px; padding: 20px; width: 100%;
-           max-width: 380px; max-height: 80vh; overflow-y: auto; }
+  #cropRoot .m-overlay { z-index: 260; }
+  .m-box { background: #fff; color: #111; border-radius: 12px; padding: 16px; width: 100%;
+           max-width: min(380px, calc(100vw - 32px)); max-height: 80vh; overflow-y: auto; }
   @media (prefers-color-scheme: dark) { .m-box { background: #1c1c1e; color: #eee; } }
   .m-title { font-size: 15px; font-weight: 500; margin-bottom: 12px; }
   .m-body { font-size: 14px; line-height: 1.6; margin-bottom: 16px; }
@@ -94,9 +95,11 @@
   .m-catrow .cnt { color: #999; font-size: 12px; }
   .m-catrow button { margin-left: auto; border: none; background: transparent; color: rgba(128,128,128,.4); font-size: 16px; cursor: pointer; }
   .m-catrow button:hover { color: #ef4444; }
-  .m-addrow { display: flex; gap: 8px; margin-top: 12px; }
-  .m-addrow input { flex: 1; padding: 7px 10px; border-radius: 10px; border: 1px solid rgba(128,128,128,.5); background: transparent; color: inherit; font-size: 14px; }
-  .m-addrow button { padding: 7px 14px; border-radius: 10px; border: 1px solid #333; background: #111; color: #fff; font-size: 14px; cursor: pointer; }
+  .m-addrow { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .m-addrow input { flex: 1 1 130px; min-width: 0; padding: 7px 10px; border-radius: 10px; border: 1px solid rgba(128,128,128,.5); background: transparent; color: inherit; font-size: 14px; }
+  .m-addrow button { padding: 6px 12px; border-radius: 10px; font-size: 13px; cursor: pointer;
+                      border: 1px solid rgba(128,128,128,.5); background: transparent; color: inherit; }
+  .m-addrow button:hover { border-color: rgba(128,128,128,.9); }
 
   /* 评论与投票 */
   .tl-toggle { flex: 0 0 auto; border: 1px solid rgba(128,128,128,.4); background: transparent; color: #888;
@@ -178,6 +181,14 @@
     font-size: 12px; padding: 6px 9px; border-radius: 6px; cursor: pointer; white-space: nowrap; }
   .dd-menu button:hover { background: rgba(128,128,128,.15); }
   @media (prefers-color-scheme: dark) { .dd-menu { background: #1c1c1e; } }
+  @media (max-width: 480px) {
+    body { padding: 14px; }
+    .tl-add { padding: 10px; }
+    .tl-panel { margin-left: 10px; padding: 10px; }
+    .m-overlay { padding: 12px; align-items: flex-end; }
+    .m-box { border-radius: 14px 14px 10px 10px; }
+    .tl-head { gap: 8px; }
+  }
 
   /* 自定义悬停提示：1 秒后出现 */
   [data-tip] { position: relative; }
@@ -190,6 +201,18 @@
     transition: opacity .15s ease;
   }
   [data-tip]:hover::after { opacity: 1; transition-delay: 1s; }
+
+  .cc-in { padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(128,128,128,.5);
+           background: transparent; color: inherit; font-size: 14px; }
+
+  /* 日历组件 */
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; text-align: center; }
+  .cal-w { font-size: 12px; color: #999; padding: 4px 0; }
+  .cal-d { padding: 8px 0; font-size: 14px; border-radius: 8px; cursor: pointer; }
+  .cal-d:hover { background: rgba(128,128,128,.18); }
+  .cal-today { border: 1px solid rgba(128,128,128,.6); }
+  .cal-sel { background: #111; color: #fff; }
+  @media (prefers-color-scheme: dark) { .cal-sel { background: #eee; color: #111; } }
 
   /* 搜索结果条 */
   .tl-searchbar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; margin-bottom: 12px;
@@ -211,7 +234,6 @@
 <div class="tl-add">
   <input type="text" id="fDate" placeholder="YYYY-MM-DD" style="max-width:125px">
   <button type="button" class="ghost" style="padding:7px 10px" onclick="openCal()" data-tip="打开日历选日期">📅</button>
-  <input type="date" id="fDateCal" style="position:fixed;left:-9999px;top:0;opacity:.01" onchange="document.getElementById('fDate').value = this.value">
   <select id="fCat"></select>
   <input type="text" id="fText" placeholder="事件描述，如：M 发高会，同框合照">
   <button onclick="addEvent()">添加</button>
@@ -225,6 +247,8 @@
       <button onclick="ddAction('import')">导入 JSON 备份</button>
       <button onclick="ddAction('exportJSON')">导出 JSON 备份</button>
       <button onclick="ddAction('exportCSV')">导出 Excel</button>
+      <button onclick="ddAction('cloudPull')">从云端同步</button>
+      <button onclick="ddAction('cloudCfg')">配置云端同步</button>
     </div>
   </div>
   <input type="file" id="importFile" accept=".json,.csv,.txt,application/json,text/csv,text/plain" style="display:none" onchange="importJSON(event)">
@@ -251,6 +275,7 @@
 
 <div class="tl-toast" id="toast"></div>
 <div id="modalRoot"></div>
+<div id="cropRoot"></div>
 
 <script>
 /* ========== 分类 ========== */
@@ -361,9 +386,46 @@ const BIRTH_M = "2007-11-16";       // 穆祉丞生日
 const BIRTH_L = "2010-01-08";       // 王橹杰生日
 
 function openCal() {
-  const c = document.getElementById("fDateCal");
-  if (c.showPicker) { try { c.showPicker(); return; } catch(e) {} }
-  c.click();
+  const today = new Date();
+  const tStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
+  let vy = today.getFullYear(), vm = today.getMonth();
+  const cur = fixDate(document.getElementById("fDate").value);
+  if (cur) { const p = cur.split("-"); vy = +p[0]; vm = +p[1] - 1; }
+  const render = () => {
+    const firstDow = new Date(vy, vm, 1).getDay();
+    const nDays = new Date(vy, vm + 1, 0).getDate();
+    let cells = "";
+    ["日","一","二","三","四","五","六"].forEach(w => cells += `<div class="cal-w">${w}</div>`);
+    for (let i = 0; i < firstDow; i++) cells += "<div></div>";
+    for (let d = 1; d <= nDays; d++) {
+      const ds = `${vy}-${String(vm+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+      let cls = "cal-d";
+      if (ds === tStr) cls += " cal-today";
+      if (cur && ds === cur) cls += " cal-sel";
+      cells += `<div class="${cls}" data-d="${d}">${d}</div>`;
+    }
+    modalRoot.innerHTML = `<div class="m-overlay"><div class="m-box" style="max-width:320px">
+      <div class="m-title" style="display:flex;justify-content:space-between;align-items:center">
+        <button class="p-collapse" id="calPrev" data-tip="上个月">‹</button>
+        <span style="font-size:15px">${vy} 年 ${vm + 1} 月</span>
+        <button class="p-collapse" id="calNext" data-tip="下个月">›</button>
+      </div>
+      <div class="cal-grid">${cells}</div>
+      <div class="m-btns" style="justify-content:space-between;margin-top:10px">
+        <button id="calToday" style="font-size:13px">回到今天</button>
+        <button id="calCancel" style="font-size:13px">取消</button>
+      </div>
+    </div></div>`;
+    document.getElementById("calPrev").onclick = () => { vm--; if (vm < 0) { vm = 11; vy--; } render(); };
+    document.getElementById("calNext").onclick = () => { vm++; if (vm > 11) { vm = 0; vy++; } render(); };
+    document.getElementById("calCancel").onclick = () => { modalRoot.innerHTML = ""; };
+    document.getElementById("calToday").onclick = () => { vy = today.getFullYear(); vm = today.getMonth(); render(); };
+    modalRoot.querySelectorAll(".cal-d").forEach(el => el.onclick = () => {
+      document.getElementById("fDate").value = `${vy}-${String(vm+1).padStart(2,"0")}-${String(el.dataset.d).padStart(2,"0")}`;
+      modalRoot.innerHTML = "";
+    });
+  };
+  render();
 }
 function fixDate(v) {
   v = (v || "").trim();
@@ -408,6 +470,181 @@ let VOTES = {};
 try { VOTES = JSON.parse(localStorage.getItem("lm_tl_votes") || "{}"); } catch(e) {}
 function saveVotes() { localStorage.setItem("lm_tl_votes", JSON.stringify(VOTES)); }
 
+/* ========== 云端同步（可选，LeanCloud 开发版） ========== */
+let CLOUD = { provider: "bmob", id: "", key: "", host: "", objId: "lm_tl_shared" };
+try { Object.assign(CLOUD, JSON.parse(localStorage.getItem("lm_tl_cloud") || "{}")); } catch(e) {}
+function saveCloudCfg() { localStorage.setItem("lm_tl_cloud", JSON.stringify(CLOUD)); }
+let TOMB = {};
+try { TOMB = JSON.parse(localStorage.getItem("lm_tl_tomb") || "{}"); } catch(e) {}
+function saveTomb() { localStorage.setItem("lm_tl_tomb", JSON.stringify(TOMB)); }
+
+const cloudP = () => CLOUD.provider || "leancloud";
+const cloudReady = () => {
+  if (cloudP() === "bmob") return !!(CLOUD.id && CLOUD.key);
+  if (cloudP() === "github") return !!(CLOUD.id && CLOUD.key && CLOUD.host);
+  if (cloudP() === "jsonbin") return !!(CLOUD.key && CLOUD.host);
+  return !!(CLOUD.id && CLOUD.key && CLOUD.host);
+};
+const ghBase = () => `https://api.github.com/repos/${CLOUD.id}/${CLOUD.key}/contents/data/shared.json`;
+const ghHeaders = () => ({ "Authorization": "Bearer " + CLOUD.host, "Accept": "application/vnd.github+json" });
+function b64encode(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+const cloudURL = () => {
+  if (cloudP() === "bmob") return "https://api2.bmob.cn/1/classes/TimelineData/" + CLOUD.objId;
+  if (cloudP() === "jsonbin") return "https://api.jsonbin.io/v3/b/" + CLOUD.host.trim();
+  return CLOUD.host.replace(/\/+$/, "") + "/1.1/classes/TimelineData/" + CLOUD.objId;
+};
+const cloudHeaders = () => {
+  const h = { "Content-Type": "application/json" };
+  if (cloudP() === "bmob") { h["X-Bmob-Application-Id"] = CLOUD.id; h["X-Bmob-REST-API-Key"] = CLOUD.key; }
+  else if (cloudP() === "jsonbin") { h["X-Master-Key"] = CLOUD.key; h["X-Bin-Meta"] = "false"; }
+  else { h["X-LC-Id"] = CLOUD.id; h["X-LC-Key"] = CLOUD.key; }
+  return h;
+};
+
+function mergeCloudData(d) {
+  let n = 0;
+  if (!d) return 0;
+  if (d.tomb && typeof d.tomb === "object") {
+    Object.keys(d.tomb).forEach(id => {
+      Object.keys(CMTS).forEach(k => { CMTS[k] = (CMTS[k] || []).filter(c => c.id !== id); });
+    });
+    Object.assign(TOMB, d.tomb); saveTomb();
+  }
+  if (d.comments && typeof d.comments === "object") {
+    Object.entries(d.comments).forEach(([k, list]) => {
+      if (!Array.isArray(list)) return;
+      if (!CMTS[k]) CMTS[k] = [];
+      const seen = new Set(CMTS[k].map(c => c.n + "|" + c.t + "|" + c.ts));
+      list.forEach(c => {
+        if (c && c.id && c.n && c.t && !seen.has(c.n + "|" + c.t + "|" + c.ts)) {
+          CMTS[k].push(c); seen.add(c.n + "|" + c.t + "|" + c.ts); n++;
+        }
+      });
+      if (d.tomb) CMTS[k] = CMTS[k].filter(c => !d.tomb[c.id]);
+    });
+    saveCmts();
+  }
+  if (d.votes && typeof d.votes === "object") {
+    Object.entries(d.votes).forEach(([k, v]) => {
+      if (!v || typeof v !== "object") return;
+      if (!VOTES[k]) VOTES[k] = {};
+      Object.entries(v).forEach(([name, x]) => { if (!VOTES[k][name]) { VOTES[k][name] = x; n++; } });
+    });
+    saveVotes();
+  }
+  return n;
+}
+
+async function cloudPull(silent) {
+  if (!cloudReady()) return;
+  try {
+    let data = null;
+    if (cloudP() === "github") {
+      const r = await fetch(ghBase() + "?ref=main", { headers: ghHeaders() });
+      if (r.status === 404) return;
+      if (!r.ok) throw 0;
+      data = JSON.parse(await r.text());
+    } else {
+      const r = await fetch(cloudURL(), { headers: cloudHeaders() });
+      if (r.status === 404) return;
+      if (!r.ok) throw 0;
+      const row = await r.json();
+      data = row.payload !== undefined ? row.payload : (row.record !== undefined ? row.record : row);
+    }
+    const n = mergeCloudData(data);
+    if (n > 0) { renderAll(); if (!silent) toast(`同步到 ${n} 条新内容 ✓`); }
+    else if (!silent) toast("已是最新");
+  } catch(e) { if (!silent) toast("拉取失败，检查网络或配置"); }
+}
+
+async function cloudPush(retried) {
+  if (!cloudReady()) return;
+  try {
+    if (cloudP() === "github") {
+      let sha;
+      const g = await fetch(ghBase() + "?ref=main", { headers: ghHeaders() });
+      if (g.ok) sha = (await g.json()).sha;
+      else if (g.status !== 404) throw 0;
+      const body = { message: "sync timeline", branch: "main",
+        content: b64encode(JSON.stringify({ comments: CMTS, votes: VOTES, tomb: TOMB })) };
+      if (sha) body.sha = sha;
+      const p = await fetch(ghBase(), { method: "PUT", headers: Object.assign({ "Content-Type": "application/json" }, ghHeaders()), body: JSON.stringify(body) });
+      if ((p.status === 409 || p.status === 422) && !retried) { await cloudPull(true); cloudPush(true); }
+      return;
+    }
+    await fetch(cloudURL(), {
+      method: "PUT", headers: cloudHeaders(),
+      body: JSON.stringify(cloudP() === "jsonbin"
+        ? { comments: CMTS, votes: VOTES, tomb: TOMB }
+        : { payload: { comments: CMTS, votes: VOTES, tomb: TOMB } })
+    });
+  } catch(e) {}
+}
+
+function cloudCfgModal() {
+  modalRoot.innerHTML = `<div class="m-overlay"><div class="m-box">
+    <div class="m-title" style="display:flex;justify-content:space-between;align-items:center">云端同步配置<button class="p-collapse" data-v="close">×</button></div>
+    <div class="m-body" style="display:flex;flex-direction:column;gap:8px">
+      <select id="ccProvider" class="cc-in">
+        <option value="github">GitHub（用仓库当数据库，推荐）</option>
+        <option value="bmob">Bmob（国内，手机号注册）</option>
+        <option value="leancloud">LeanCloud</option>
+        <option value="jsonbin">JSONBin（GitHub 账号登录）</option>
+      </select>
+      <input id="ccId" class="cc-in" placeholder="Application ID" value="${CLOUD.id}">
+      <input id="ccKey" class="cc-in" placeholder="REST API Key" value="${CLOUD.key}">
+      <input id="ccHost" class="cc-in" placeholder="API 域名" value="${CLOUD.host}">
+      <div id="ccHint" style="font-size:12px;color:#999;line-height:1.7"></div>
+    </div>
+    <div class="m-btns" style="justify-content:space-between">
+      <button id="ccClear">清除配置</button>
+      <button id="ccSave" class="m-primary">保存并同步</button>
+    </div>
+  </div></div>`;
+  const F = {
+    github:    { id: "仓库所有者用户名（SetsunaMi）", key: "仓库名（LM-timeline）", host: "Personal Access Token",
+                 hint: "GitHub：点头像 → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token：Expiration 选 No expiration；Repository access 选 Only select repositories 勾上 LM-timeline；Permissions → Repository permissions → Contents 设为 Read and write；Generate 后立刻复制。三个人各自建自己的 token，填同一个仓库。Token 只存在本机浏览器。" },
+    bmob:      { id: "Application ID", key: "REST API Key", host: null,
+                 hint: "Bmob：打开 bmob.cn 手机号注册 → 控制台「创建应用」→ 进应用「设置 → 应用密钥」→ 复制 Application ID 和 REST API Key。三个人填同一个应用的凭证即可互通。" },
+    leancloud: { id: "AppID", key: "AppKey", host: "API 域名，如 https://xxx.api.lncld.net",
+                 hint: "LeanCloud：leancloud.cn 创建应用 →「设置 → 应用凭证」拿 AppID / AppKey，「应用信息」里看 API 域名。" },
+    jsonbin:   { id: null, key: "X-Master-Key", host: "Bin ID",
+                 hint: "JSONBin：jsonbin.io 用 GitHub 账号登录 → 点一次「从云端同步」会自动建好数据桶 → 在 Dashboard 复制 Bin 的 ID 和 X-Master-Key 填进来。免费额度小，关掉自动轮询，多用菜单里的「从云端同步」手动拉。" }
+  };
+  const sel = document.getElementById("ccProvider");
+  const idI = document.getElementById("ccId"), keyI = document.getElementById("ccKey"), hostI = document.getElementById("ccHost");
+  const applyP = () => {
+    const c = F[sel.value];
+    idI.style.display = c.id ? "" : "none";
+    keyI.style.display = c.key ? "" : "none";
+    hostI.style.display = c.host ? "" : "none";
+    idI.placeholder = c.id || ""; keyI.placeholder = c.key || ""; hostI.placeholder = c.host || "";
+    document.getElementById("ccHint").textContent = c.hint;
+  };
+  sel.value = ["github", "bmob", "leancloud", "jsonbin"].includes(cloudP()) ? cloudP() : "github";
+  applyP();
+  sel.onchange = applyP;
+  modalRoot.querySelector("button[data-v=close]").onclick = () => { modalRoot.innerHTML = ""; };
+  document.getElementById("ccSave").onclick = () => {
+    CLOUD.provider = sel.value;
+    CLOUD.id = idI.value.trim();
+    CLOUD.key = keyI.value.trim();
+    CLOUD.host = hostI.value.trim();
+    saveCloudCfg(); modalRoot.innerHTML = "";
+    toast(cloudReady() ? "已保存，正在同步…" : "已保存（凭证不全则不启用）");
+    cloudPull(false);
+  };
+  document.getElementById("ccClear").onclick = () => {
+    CLOUD = { provider: "bmob", id: "", key: "", host: "", objId: "lm_tl_shared" };
+    saveCloudCfg(); modalRoot.innerHTML = ""; toast("已清除云端配置");
+  };
+}
+
 const openPanels = new Set();
 const ekey = e => e.d + "|" + e.t;
 const safeKey = k => encodeURIComponent(k);
@@ -423,6 +660,70 @@ function avaHTML(p, size) {
 function renderMe() {
   const el = document.getElementById("meChip");
   el.innerHTML = PROFILE.n ? `${avaHTML(PROFILE, 24)}<b style="margin-left:6px;font-size:14px">${PROFILE.n}</b>` : "";
+}
+
+/* 正方形头像裁剪：拖动图片 + 滑块缩放，中间固定方形选区 */
+function cropAvatar(file, cb) {
+  const r = new FileReader();
+  r.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const natW = img.naturalWidth, natH = img.naturalHeight;
+      const VW = 280, VH = 280, S = Math.min(220, VW - 20);
+      const vx = (VW - S) / 2, vy = (VH - S) / 2;
+      let zoom = 1;
+      const base = Math.min(VW / natW, VH / natH);
+      const disp = () => ({ w: natW * base * zoom, h: natH * base * zoom });
+      let d = disp();
+      let offX = (VW - d.w) / 2, offY = (VH - d.h) / 2;
+      const clampOff = () => {
+        d = disp();
+        if (d.w <= S) offX = (VW - d.w) / 2; else offX = Math.min(vx, Math.max(vx + S - d.w, offX));
+        if (d.h <= S) offY = (VH - d.h) / 2; else offY = Math.min(vy, Math.max(vy + S - d.h, offY));
+      };
+      clampOff();
+      const cr = document.getElementById("cropRoot");
+      cr.innerHTML = `<div class="m-overlay"><div class="m-box">
+        <div class="m-title">选择正方形区域</div>
+        <div class="m-body" style="display:flex;flex-direction:column;align-items:center;gap:10px">
+          <div id="cropVp" style="position:relative;width:${VW}px;height:${VH}px;max-width:100%;overflow:hidden;border-radius:8px;background:rgba(128,128,128,.15);touch-action:none">
+            <img src="${img.src}" style="position:absolute;max-width:none;user-select:none;-webkit-user-select:none;cursor:grab">
+            <div style="position:absolute;left:${vx}px;top:${vy}px;width:${S}px;height:${S}px;box-shadow:0 0 0 999px rgba(0,0,0,.55);border:2px solid #fff;pointer-events:none;border-radius:4px"></div>
+          </div>
+          <input type="range" min="0.5" max="3" step="0.01" value="1" style="width:90%" id="cropZoom">
+        </div>
+        <div class="m-btns"><button data-v="no">取消</button><button data-v="yes" class="m-primary">确定</button></div>
+      </div></div>`;
+      const imgEl = cr.querySelector("img");
+      const vp = document.getElementById("cropVp");
+      const apply = () => { d = disp(); imgEl.style.width = d.w + "px"; imgEl.style.height = d.h + "px"; imgEl.style.left = offX + "px"; imgEl.style.top = offY + "px"; };
+      apply();
+      let dragging = false, sx = 0, sy = 0, ox0 = 0, oy0 = 0;
+      vp.addEventListener("pointerdown", e => { e.preventDefault(); vp.setPointerCapture(e.pointerId); dragging = true; sx = e.clientX; sy = e.clientY; ox0 = offX; oy0 = offY; });
+      vp.addEventListener("pointermove", e => { if (!dragging) return; offX = ox0 + e.clientX - sx; offY = oy0 + e.clientY - sy; clampOff(); apply(); });
+      vp.addEventListener("pointerup", () => dragging = false);
+      vp.addEventListener("pointercancel", () => dragging = false);
+      document.getElementById("cropZoom").oninput = e => {
+        const z2 = parseFloat(e.target.value), r = z2 / zoom;
+        zoom = z2;
+        offX = VW / 2 - (VW / 2 - offX) * r;
+        offY = VH / 2 - (VH / 2 - offY) * r;
+        clampOff(); apply();
+      };
+      cr.querySelector("button[data-v=yes]").onclick = () => {
+        const d2 = disp();
+        const cx = Math.max(0, (vx - offX) / d2.w * natW), cy = Math.max(0, (vy - offY) / d2.h * natH);
+        const cs = Math.min(S / d2.w * natW, natW - cx, natH - cy);
+        const cv = document.createElement("canvas"); cv.width = cv.height = 64;
+        cv.getContext("2d").drawImage(img, cx, cy, cs, cs, 0, 0, 64, 64);
+        cr.innerHTML = "";
+        cb(cv.toDataURL("image/png"));
+      };
+      cr.querySelector("button[data-v=no]").onclick = () => { cr.innerHTML = ""; };
+    };
+    img.src = r.result;
+  };
+  r.readAsDataURL(file);
 }
 
 function profileModal() {
@@ -445,16 +746,13 @@ function profileModal() {
   });
   document.getElementById("avaFile").onchange = e => {
     const f = e.target.files[0]; if (!f) return;
-    const r = new FileReader();
-    r.onload = () => { const img = new Image(); img.onload = () => {
-      const cv = document.createElement("canvas"); cv.width = cv.height = 64;
-      cv.getContext("2d").drawImage(img, 0, 0, 64, 64);
-      tmpAvatar = cv.toDataURL("image/png");
+    e.target.value = "";
+    cropAvatar(f, url => {
+      tmpAvatar = url;
       const sel = modalRoot.querySelector("input[name=role]:checked");
       document.getElementById("avaPrev").innerHTML = avaHTML({ n: sel ? sel.value : "?", a: tmpAvatar }, 40);
       toast("头像已设置 ✓");
-    }; img.src = r.result; };
-    r.readAsDataURL(f);
+    });
   };
   document.getElementById("pOk").onclick = () => {
     const sel = modalRoot.querySelector("input[name=role]:checked");
@@ -506,7 +804,7 @@ function voteFor(keyEnc, side) {
   const cur = VOTES[key][PROFILE.n];
   if (cur && cur.s === side) delete VOTES[key][PROFILE.n];
   else VOTES[key][PROFILE.n] = { s: side, a: PROFILE.a || "" };
-  saveVotes(); renderAll();
+  saveVotes(); cloudPush(); renderAll();
 }
 function voteHTML(key) {
   const red = vlist(key, "red"), blue = vlist(key, "blue"), abst = vlist(key, "abs");
@@ -556,7 +854,7 @@ function sendReply(sk, rid) {
   const c = (CMTS[key] || []).find(x => x.id === rid); if (!c) return;
   c.r = c.r || [];
   c.r.push({ n: PROFILE.n, a: PROFILE.a || "", t, ts: Date.now() });
-  replyOpen = ""; saveCmts(); renderAll();
+  replyOpen = ""; saveCmts(); cloudPush(); renderAll();
 }
 async function delCmt(sk, rid) {
   const key = decodeURIComponent(sk);
@@ -564,15 +862,16 @@ async function delCmt(sk, rid) {
   const nr = (c.r || []).length;
   const ok = await confirmDlg(`确定删除这条评论${nr ? `（含 ${nr} 条回复，会一并删除）` : ""}？`, "删除");
   if (!ok) return;
+  TOMB[c.id] = 1; saveTomb();
   CMTS[key] = CMTS[key].filter(x => x.id !== rid);
-  saveCmts(); renderAll(); toast("评论已删除");
+  saveCmts(); cloudPush(); renderAll(); toast("评论已删除");
 }
 async function delReply(sk, rid, ri) {
   const key = decodeURIComponent(sk);
   const c = (CMTS[key] || []).find(x => x.id === rid); if (!c || !c.r) return;
   const ok = await confirmDlg("确定删除这条回复？", "删除");
   if (!ok) return;
-  c.r.splice(ri, 1); saveCmts(); renderAll();
+  c.r.splice(ri, 1); saveCmts(); cloudPush(); renderAll();
 }
 function startCmtEdit(sk, rid) {
   editOpen = sk + ":" + rid; replyOpen = ""; renderAll();
@@ -584,7 +883,7 @@ function saveCmtEdit(sk, rid) {
   const inp = document.getElementById("ce-" + sk + "-" + rid);
   const t = (inp.value || "").trim(); if (!t) return;
   const c = (CMTS[key] || []).find(x => x.id === rid);
-  if (c) { c.t = t; c.ts = Date.now(); saveCmts(); }
+  if (c) { c.t = t; c.ts = Date.now(); saveCmts(); cloudPush(); }
   editOpen = ""; renderAll(); toast("已修改 ✓");
 }
 function findCmt(key, rid) { return (CMTS[key] || []).find(x => x.id === rid); }
@@ -635,7 +934,7 @@ function sendCmt(keyEnc) {
   if (!t) return;
   if (!CMTS[key]) CMTS[key] = [];
   CMTS[key].push({ id: cmtId(), n: PROFILE.n, a: PROFILE.a || "", t, ts: Date.now(), r: [] });
-  saveCmts(); renderAll();
+  saveCmts(); cloudPush(); renderAll();
 }
 function panelHTML(key) {
   const sk = safeKey(key);
@@ -752,7 +1051,7 @@ function manageCats() {
     <div class="m-title" style="display:flex;justify-content:space-between;align-items:center">管理分类<button class="p-collapse" data-v="close">×</button></div>
     <div class="m-body">${rows || "<p style='color:#999'>暂无分类</p>"}
       <div class="m-addrow"><input id="newCatName" placeholder="新分类名称，如：综艺路透">
-      <button onclick="addCat()">添加</button><button data-v="close" class="m-primary" style="padding:7px 12px">完成</button></div>
+      <button onclick="addCat()">添加</button><button data-v="close">完成</button></div>
     </div>
   </div></div>`;
   modalRoot.querySelector("button[data-v=close]").onclick = () => { modalRoot.innerHTML = ""; };
@@ -828,6 +1127,8 @@ function ddAction(a) {
   if (a === "import") document.getElementById("importFile").click();
   else if (a === "exportJSON") exportJSON();
   else if (a === "exportCSV") exportCSV();
+  else if (a === "cloudPull") cloudPull(false);
+  else if (a === "cloudCfg") cloudCfgModal();
 }
 document.addEventListener("click", e => {
   const m = document.getElementById("ddMenu");
@@ -1130,6 +1431,24 @@ migrateCmts();
 applyAnnOrder();
 initAnnDrag();
 renderAll();
+/* 好友专属链接：打开 #sync=用户名/仓库名/Token 的链接时自动完成配置 */
+(function checkHashSync() {
+  const m = location.hash.match(/#sync=([^/]+)\/([^/]+)\/(.+)/);
+  if (m) {
+    CLOUD.provider = "github";
+    CLOUD.id = decodeURIComponent(m[1]);
+    CLOUD.key = decodeURIComponent(m[2]);
+    CLOUD.host = decodeURIComponent(m[3]);
+    saveCloudCfg();
+    history.replaceState(null, "", location.pathname + location.search);
+    toast("同步已自动配置 ✓");
+  }
+})();
+
+if (cloudReady()) {
+  cloudPull(false);
+  if (cloudP() !== "jsonbin") setInterval(() => cloudPull(true), 60000);
+}
 if (!PROFILE.n) profileModal();
 </script>
 </body>
